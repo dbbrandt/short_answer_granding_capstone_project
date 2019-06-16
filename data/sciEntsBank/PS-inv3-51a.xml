@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<question id="PS_51a" module="PS">
+  <questionText>Katie got a guitar for her birthday. She experimented with the strings and found she could change their sounds. One way Katie could change the sound of a string was to tighten it. Describe how the sound was different when the string was tightened.</questionText>
+  <referenceAnswers>
+    <referenceAnswer id="PS_51a-a1">When the string was tighter, the pitch was higher.</referenceAnswer>
+  </referenceAnswers>
+  <studentAnswers>
+    <studentAnswer id="PS.51a.101.1" accuracy="incorrect">If you get it right it will not have much Frequency.</studentAnswer>
+    <studentAnswer id="PS.51a.107.1" accuracy="correct">If the strings were tightened it would make a high sound.</studentAnswer>
+    <studentAnswer id="PS.51a.118.1" accuracy="incorrect">It was soft then it got louder.</studentAnswer>
+    <studentAnswer id="PS.51a.141.1" accuracy="correct">Because there is more tension so the vibrations go faster.</studentAnswer>
+    <studentAnswer id="PS.51a.152.1" accuracy="correct">It goes higher.</studentAnswer>
+    <studentAnswer id="PS.51a.157.1" accuracy="incorrect">The string is lower when you tightened it.</studentAnswer>
+    <studentAnswer id="PS.51a.171.1" accuracy="correct">It was a high pitch when she hit the string when it was not holding down the string it was a lower sound.</studentAnswer>
+    <studentAnswer id="PS.51a.175.1" accuracy="incorrect">It was louder Because she made more tension.</studentAnswer>
+    <studentAnswer id="PS.51a.183.1" accuracy="correct">The string had a higher pitch.</studentAnswer>
+    <studentAnswer id="PS.51a.189.1" accuracy="correct">It would make a High sound.</studentAnswer>
+    <studentAnswer id="PS.51a.193.1" accuracy="correct">It was higher.</studentAnswer>
+    <studentAnswer id="PS.51a.212.1" accuracy="incorrect">It would either make the pitch higher or lower.</studentAnswer>
+    <studentAnswer id="PS.51a.221.1" accuracy="correct">The pitch higher so it was more of a ding than a bring.</studentAnswer>
+    <studentAnswer id="PS.51a.225.1" accuracy="incorrect">Lower because if you pull on the string it is lower.</studentAnswer>
+    <studentAnswer id="PS.51a.230.1" accuracy="correct">When you tighten it it makes a higher pitched.</studentAnswer>
+    <studentAnswer id="PS.51a.244.1" accuracy="incorrect">Well when it is tightened you can not pull it that far so it makes a different sound.</studentAnswer>
+    <studentAnswer id="PS.51a.263.1" accuracy="incorrect">It is lower pitch when it is tighten so if it is looser then it is high pitch.</studentAnswer>
+    <studentAnswer id="PS.51a.313.1" accuracy="correct">It got high pitch and lower volume.</studentAnswer>
+    <studentAnswer id="PS.51a.316.1" accuracy="incorrect">When you tighten it up it would sound different.</studentAnswer>
+    <studentAnswer id="PS.51a.320.1" accuracy="incorrect">The string was tighter.</studentAnswer>
+    <studentAnswer id="PS.51a.331.1" accuracy="incorrect">I know that it is a low pitch.</studentAnswer>
+    <studentAnswer id="PS.51a.334.1" accuracy="incorrect">It would be a low pitch.</studentAnswer>
+    <studentAnswer id="PS.51a.384.1" accuracy="incorrect">It will be louder.</studentAnswer>
+    <studentAnswer id="PS.51a.400.1" accuracy="incorrect">The string makes a low pitch.</studentAnswer>
+    <studentAnswer id="PS.51a.454.1" accuracy="incorrect">When the string is tightened the string comes more out of the guitar part so the string in the guitar part is smaller so the pitch it higher.</studentAnswer>
+    <studentAnswer id="PS.51a.461.1" accuracy="correct">When she tightened the string there was a higher pitch.</studentAnswer>
+    <studentAnswer id="PS.51a.466.1" accuracy="correct">When the string is tightened, the pitch is higher not lower.</studentAnswer>
+    <studentAnswer id="PS.51a.475.1" accuracy="incorrect">The string made a higher pitch because it made it stop earlier which makes a higher pitch.</studentAnswer>
+    <studentAnswer id="PS.51a.497.1" accuracy="incorrect">When you make it long it make it low sound when you make it short it a height sound.</studentAnswer>
+    <studentAnswer id="PS.51a.508.1" accuracy="incorrect">When it was loose the sound was soft but when it was tighten it is low.</studentAnswer>
+    <studentAnswer id="PS.51a.524.1" accuracy="correct">The string was higher pitch because it had more tension.</studentAnswer>
+    <studentAnswer id="PS.51a.539.1" accuracy="correct">The tighter the string the higher it gets.</studentAnswer>
+    <studentAnswer id="PS.51a.600.1" accuracy="correct">When she make the the loose it get the sound lower.</studentAnswer>
+    <studentAnswer id="PS.51a.607.1" accuracy="correct">The pitch is higher.</studentAnswer>
+    <studentAnswer id="PS.51a.629.1" accuracy="incorrect">It was louder because the string was tighter.</studentAnswer>
+    <studentAnswer id="PS.51a.643.1" accuracy="incorrect">By moving her finger.</studentAnswer>
+  </studentAnswers>
+</question>

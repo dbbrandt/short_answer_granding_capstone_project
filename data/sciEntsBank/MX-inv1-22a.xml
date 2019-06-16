@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<question id="MX_22a" module="MX">
+  <questionText>A solution is a type of mixture. What makes it different from other mixtures?</questionText>
+  <referenceAnswers>
+    <referenceAnswer id="MX_22a-a1">A solution is a mixture formed when a solid dissolves in a liquid.</referenceAnswer>
+  </referenceAnswers>
+  <studentAnswers>
+    <studentAnswer id="MX.22a.385.1" accuracy="incorrect">You can see through it.</studentAnswer>
+    <studentAnswer id="MX.22a.386.1" accuracy="correct">It is one material that dissolves into the other. Making a clear mixture. Although it could be colored, it has to be see through.</studentAnswer>
+    <studentAnswer id="MX.22a.390.1" accuracy="incorrect">It is a clear mixture.</studentAnswer>
+    <studentAnswer id="MX.22a.391.1" accuracy="correct">It dissolves the solid into a liquid that is see through.</studentAnswer>
+    <studentAnswer id="MX.22a.396.1" accuracy="incorrect">It has to be a fairly clear.</studentAnswer>
+    <studentAnswer id="MX.22a.397.1" accuracy="incorrect">A solution is a solid and a liquid mixed together.</studentAnswer>
+    <studentAnswer id="MX.22a.400.1" accuracy="correct">In a solution one of the materials dissolves and the mixture is see through.</studentAnswer>
+    <studentAnswer id="MX.22a.416.1" accuracy="incorrect">A solution is different because a solution is a mixture of a solid material and a liquid.</studentAnswer>
+    <studentAnswer id="MX.22a.419.1" accuracy="incorrect">Because 2 mixtures become a solution. A solution is different because mixture cannot become a solution only 2 can.</studentAnswer>
+    <studentAnswer id="MX.22a.421.1" accuracy="incorrect">The difference from other mixtures was that we only used 2 and other people might use 3 or 4.</studentAnswer>
+    <studentAnswer id="MX.22a.422.1" accuracy="correct">A solution is when you take a mixture like powder and mix it with water then after stirring it, it becomes a solution.</studentAnswer>
+    <studentAnswer id="MX.22a.426.1" accuracy="incorrect">Because it is made of 2 mixtures, and making it one mixture and becoming a solution of 2 mixtures.</studentAnswer>
+    <studentAnswer id="MX.22a.463.1" accuracy="incorrect">A solution is 2 materials put together and the one dissolves. And on a mixture they stay so you can see it.</studentAnswer>
+    <studentAnswer id="MX.22a.466.1" accuracy="incorrect">It is different because in other mixtures the liquid dissolves but in a solution the solid material dissolves.</studentAnswer>
+    <studentAnswer id="MX.22a.472.1" accuracy="incorrect">A solution is different from a mixture because it is when you mix 2 or more things and a solution is when like water and salt dissolves or evaporated.</studentAnswer>
+    <studentAnswer id="MX.22a.473.1" accuracy="incorrect">When you make solution tiny particles of the solid explained some cannot see it.</studentAnswer>
+    <studentAnswer id="MX.22a.495.1" accuracy="incorrect">The solid material dissolves.</studentAnswer>
+    <studentAnswer id="MX.22a.499.1" accuracy="incorrect">A solution is a different type of mixture. Then they are a solution is a mixtures that dissolves.</studentAnswer>
+    <studentAnswer id="MX.22a.502.1" accuracy="incorrect">The salt dissolved in the mixture.</studentAnswer>
+    <studentAnswer id="MX.22a.521.1" accuracy="incorrect">A solution something that dissolves.</studentAnswer>
+    <studentAnswer id="MX.22a.527.1" accuracy="correct">A solution is something that dissolves into the liquid and a mixture is something mixed up together.</studentAnswer>
+    <studentAnswer id="MX.22a.528.1" accuracy="incorrect">When the mixture is mixed.</studentAnswer>
+    <studentAnswer id="MX.22a.530.1" accuracy="incorrect">A solution does not dissolve.</studentAnswer>
+    <studentAnswer id="MX.22a.542.1" accuracy="incorrect">Other mixtures are mixed with peas and tomatoes and other foods.</studentAnswer>
+    <studentAnswer id="MX.22a.559.1" accuracy="correct">A solution is when an object disappears in the liquid and in a mixture the object does not disappear.</studentAnswer>
+    <studentAnswer id="MX.22a.562.1" accuracy="incorrect">A solution is something put into a liquid and made one thing.</studentAnswer>
+    <studentAnswer id="MX.22a.577.1" accuracy="correct">In a solution one material dissolves into the liquid.</studentAnswer>
+    <studentAnswer id="MX.22a.595.1" accuracy="incorrect">Solutions are clear.</studentAnswer>
+    <studentAnswer id="MX.22a.600.1" accuracy="incorrect">Clear and 2 things that make it still clear.</studentAnswer>
+    <studentAnswer id="MX.22a.601.1" accuracy="incorrect">A solution is different because it is clear that you can see through.</studentAnswer>
+    <studentAnswer id="MX.22a.604.1" accuracy="incorrect">A solution is separated but a mixture is a bunched up together.</studentAnswer>
+    <studentAnswer id="MX.22a.611.1" accuracy="incorrect">Because a solution is clear but other mixtures are not.</studentAnswer>
+    <studentAnswer id="MX.22a.633.1" accuracy="incorrect">It has and weighs more with more things in it than a solution.</studentAnswer>
+    <studentAnswer id="MX.22a.638.1" accuracy="incorrect">Because one of the chemicals dissolves.</studentAnswer>
+    <studentAnswer id="MX.22a.641.1" accuracy="correct">The solid must dissolve.</studentAnswer>
+    <studentAnswer id="MX.22a.649.1" accuracy="incorrect">They have a different type of them that they have different ideas.</studentAnswer>
+  </studentAnswers>
+</question>
