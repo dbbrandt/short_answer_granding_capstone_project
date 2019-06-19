@@ -45,11 +45,6 @@ print(f"Sample Size: {len(data_answers)}")
 print(data_labels)
 print(f"Longest answer: {max_length}")
 
-# Generate a train.csv file for Sagemaker use
-labels_df = pd.DataFrame(data_labels)
-answers_df = pd.DataFrame(data_answers)
-test_data = pd.concat([labels_df, answers_df], axis=1)
-test_data.to_csv('data/train.csv', index=False)
 
 # Save Vocabulary
 pd.DataFrame(from_num_dict.values()).to_csv('data/seb/vocab.csv', index=False, header=None)
@@ -67,6 +62,22 @@ for answer in data_answers:
 print(decoded_answers)
 
 X_train, X_test, y_train, y_test = train_test_split(data_answers, data_labels, test_size=0.30, random_state=72)
+
+# Generate a train.csv file for Sagemaker use
+labels_df = pd.DataFrame(y_train)
+answers_df = pd.DataFrame(X_train)
+test_data = pd.concat([labels_df, answers_df], axis=1)
+test_data.to_csv('data/seb/train.csv', index=False)
+train_x = test_data.iloc[:, 1:]
+max_length = train_x.values.shape[1]
+print(f"Test Data columns: {max_length}")
+
+
+# Generate a test.csv file for predictions
+labels_df = pd.DataFrame(y_test)
+answers_df = pd.DataFrame(X_test)
+test_data = pd.concat([labels_df, answers_df], axis=1)
+test_data.to_csv('data/seb/test.csv', index=False)
 
 model = Sequential()
 model.add(Embedding(len(from_num_dict), 30, input_length=max_length))
@@ -107,6 +118,11 @@ scores = evaluate(model, X_test, y_test)
 # Trainable params: 56,551
 # Non-trainable params: 0
 
-# Accuracy: 100.000000
-# Loss: 0.001570
-# Prediction Accuracy: 72.727273
+# predictions  0.0  1.0
+# actuals
+# 0.0           21    4
+# 1.0            9    8
+#
+# Recall:     0.471
+# Precision:  0.667
+# Accuracy:   0.690

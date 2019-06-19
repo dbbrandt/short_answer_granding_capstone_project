@@ -57,23 +57,25 @@ if __name__ == '__main__':
     # Read in csv training file
     training_dir = args.data_dir
     train_data = pd.read_csv(os.path.join(training_dir, "train.csv"), header=None, names=None)
+    vocab = pd.read_csv(os.path.join(training_dir, "vocab.csv"), header=None, names=None)
 
     # Labels are in the first column
     train_y = train_data.iloc[:, 0]
     train_x = train_data.iloc[:, 1:]
+    max_length = train_x.values.shape[1]
 
     # Build Model
     model = Sequential()
-    model.add(Embedding(len(from_num_dict), 30, input_length=max_length))
-    model.add(Dropout(0.2))
-    model.add(LSTM(100, return_sequences=False, input_shape=(max_length,)))
-    model.add(Dropout(0.2))
+    model.add(Embedding(len(vocab), args.embedding_size, input_length=max_length))
+    model.add(Dropout(args.dropout))
+    model.add(LSTM(args.lstm_size, return_sequences=False, input_shape=(max_length,)))
+    model.add(Dropout(args.dropout))
     model.add(Dense(1, activation="linear"))
-    model.compile(optimizer='adam', loss='mean_squared_error', metrics=['acc'])
+    model.compile(optimizer=args.optimizer, loss='mean_squared_error', metrics=['acc'])
 
 
     # Train the model
-    model.fit(train_x, train_y)
+    model.fit(train_x, train_y, epochs=args.epochs, verbose=1)
 
     ## --- End of your code  --- ##
 
