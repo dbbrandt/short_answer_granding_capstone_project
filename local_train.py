@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 # from vectorizer import Vectorizer
-from keras.layers.core import Dense, Activation, Dropout
+from keras.layers.core import Dropout
 from keras.models import Sequential
 from keras.layers import Dense, Embedding
 from keras.layers import LSTM
@@ -11,11 +11,12 @@ from keras.layers import LSTM
 # #from keras.preprocessing.text import one_hot
 from keras.preprocessing.sequence import pad_sequences
 # from numpy.random import randint
+from numpy.random import seed
+from tensorflow import set_random_seed
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
 # import joblib
 
-from data_preprocess import read_xml_qanda
+from source.utils import read_xml_qanda, evaluate, generate_data
 
 answer_col = 'answer'
 predictor_col = 'correct'
@@ -24,58 +25,37 @@ filenames = {'em': 'data/sciEntsBank/EM-post-35.xml',
              'mx': 'data/sciEntsBank/MX-inv1-22a.xml',
              'ps': 'data/sciEntsBank/PS-inv3-51a.xml'}
 
-def validate(predictors, target, model):
-    pred = model.predict(predictors).flatten().round()
-    score = accuracy_score(target, pred.flatten())
-    return score
 
-def encode_answers(answers):
-    vocab_string = " ".join(answers)
-    vocab_list = vocab_string.split(' ')
-    vocabulary = sorted(list(dict.fromkeys(vocab_list)))
-    to_num_dict = {word: i for i, word in enumerate(vocabulary)}
-    from_num_dict = {i: word for i, word in enumerate(vocabulary)}
+seed(72) # Python
+set_random_seed(72) # Tensorflo
 
-    #print(vocabulary)
+# question, reference_answer, answer_df = read_xml_qanda(filenames['ps'])
+answer_df = pd.DataFrame()
+for filename in filenames.values():
+    answers = read_xml_qanda(filename)
+    answer_df = pd.concat([answer_df, answers], axis=0, ignore_index=True)
 
-    encoded_answers = []
-    for answer in answers:
-        arr = []
-        for word in answer.split(' '):
-            arr.append(to_num_dict[word])
-        encoded_answers.append(arr)
+print(answer_df)
+answer_df.to_csv('data/seb/raw_data.csv', index=False)
 
-    #print(encoded_answers)
-    max_length = max([len(answer) for answer in encoded_answers])
-    padded_answers = pad_sequences(encoded_answers, maxlen=max_length, padding='post').tolist()
-    padded_answers = np.array(padded_answers).astype('float')
-    return max_length, padded_answers, from_num_dict, to_num_dict
+data_answers, data_labels, max_length, from_num_dict, to_num_dict = generate_data(answer_df)
 
+print(data_answers)
+print(f"Sample Size: {len(data_answers)}")
+print(data_labels)
+print(f"Longest answer: {max_length}")
 
-def generate_data(filename):
-    question, reference_answer, answer_df = read_xml_qanda(filename)
+# Generate a train.csv file for Sagemaker use
+labels_df = pd.DataFrame(data_labels)
+answers_df = pd.DataFrame(data_answers)
+test_data = pd.concat([labels_df, answers_df], axis=1)
+test_data.to_csv('data/train.csv', index=False)
 
-    max_length, encoded_answers, from_num_dict, to_num_dict = encode_answers(answer_df[answer_col].values)
-
-    encoded_answer_df = pd.DataFrame(encoded_answers)
-    encoded_answer_df[predictor_col] = answer_df[predictor_col].astype(float)
-
-    # randomize data
-    randomized_data = encoded_answer_df.reindex(np.random.permutation(encoded_answer_df.index))
-    randomized_labels = randomized_data[predictor_col].values
-    randomized_answers = randomized_data.drop([predictor_col], axis=1).values
-
-    return randomized_answers, randomized_labels, max_length, from_num_dict, to_num_dict
-
-
-test_answers, test_labels, max_length, from_num_dict, to_num_dict = generate_data(filenames['em'])
-
-print(test_answers)
-print(test_labels)
-print(max_length)
+# Save Vocabulary
+pd.DataFrame(from_num_dict.values()).to_csv('data/seb/vocab.csv', index=False, header=None)
 
 decoded_answers = []
-for answer in test_answers:
+for answer in data_answers:
     arr = []
     for i, word in enumerate(answer):
         if i > 0 and word == 0:
@@ -86,7 +66,7 @@ for answer in test_answers:
 
 print(decoded_answers)
 
-X_train, X_test, y_train, y_test = train_test_split(test_answers, test_labels, test_size=0.30, random_state=53)
+X_train, X_test, y_train, y_test = train_test_split(data_answers, data_labels, test_size=0.30, random_state=72)
 
 model = Sequential()
 model.add(Embedding(len(from_num_dict), 30, input_length=max_length))
@@ -106,8 +86,7 @@ loss, accuracy = model.evaluate(X_train, y_train, verbose=0)
 print('Accuracy: %f' % (accuracy*100))
 print('Loss: %f' % loss)
 
-score = validate(X_test, y_test, model)
-print('Prediction Accuracy: %f' % (score*100))
+scores = evaluate(model, X_test, y_test)
 
 # Results
 # Embedding: 30, Dropout: 0.2, LSTM: 100, optmizer: Adam, epochs: 200, Train Tst Split: .3 => Accuracy: 72.7%
