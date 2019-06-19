@@ -86,7 +86,7 @@ for answer in test_answers:
 
 print(decoded_answers)
 
-X_train, X_test, y_train, y_test = train_test_split(test_answers, test_labels, test_size=0.20, random_state=53)
+X_train, X_test, y_train, y_test = train_test_split(test_answers, test_labels, test_size=0.30, random_state=53)
 
 model = Sequential()
 model.add(Embedding(len(from_num_dict), 30, input_length=max_length))
@@ -110,7 +110,7 @@ score = validate(X_test, y_test, model)
 print('Prediction Accuracy: %f' % (score*100))
 
 # Results
-# Embedding: 30, Dropout: 0.2, LSTM: 100, optmizer: Adam, epochs: 200, Train Tst Split: .2 => Accuracy: 62.5
+# Embedding: 30, Dropout: 0.2, LSTM: 100, optmizer: Adam, epochs: 200, Train Tst Split: .3 => Accuracy: 72.7%
 # _________________________________________________________________
 # Layer (type)                 Output Shape              Param #
 # =================================================================
@@ -129,5 +129,5 @@ print('Prediction Accuracy: %f' % (score*100))
 # Non-trainable params: 0
 
 # Accuracy: 100.000000
-# Loss: 0.000692
-# Prediction Accuracy: 62.500000
+# Loss: 0.001570
+# Prediction Accuracy: 72.727273
