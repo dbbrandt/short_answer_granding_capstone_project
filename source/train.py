@@ -3,16 +3,19 @@ import tensorflow as tf
 
 import argparse
 import os
+import sys
 import pandas as pd
+import numpy as np
 
-import pickle
-from keras.layers.core import Dropout
-from keras.models import Sequential
-from keras.layers import Dense, Embedding
-from keras.layers import LSTM
-# from tensorflow.python.keras import Sequential
-# from tensorflow.python.keras.layers import Embedding, LSTM, Dropout, Dense
-# from tensorflow.python.training.adam import AdamOptimizer
+# import pickle
+# from keras.layers.core import Dropout
+# from keras.models import Sequential
+# from keras.layers import Dense, Embedding
+# from keras.layers import LSTM
+
+from tensorflow.python.keras import Sequential
+from tensorflow.python.keras.layers import Embedding, LSTM, Dropout, Dense
+from tensorflow.python.training.adam import AdamOptimizer
 # tf.enable_eager_execution()
 
 # Provided model load function
@@ -74,9 +77,9 @@ if __name__ == '__main__':
     model.add(LSTM(args.lstm_size, return_sequences=False, input_shape=(max_length,)))
     model.add(Dropout(args.dropout))
     model.add(Dense(1, activation="linear"))
-    # optimizer = AdamOptimizer()
-    # model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['acc'])
-    model.compile(optimizer=args.optimizer, loss='mean_squared_error', metrics=['acc'])
+    optimizer = AdamOptimizer()
+    model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['acc'])
+    # model.compile(optimizer=args.optimizer, loss='mean_squared_error', metrics=['acc'])
 
 
     # Train the model
@@ -86,17 +89,11 @@ if __name__ == '__main__':
     test_y = test_data.iloc[:, 0]
     test_x = test_data.iloc[:, 1:]
     score = model.evaluate(test_x, test_y, verbose=0)
-    print('Validation loss    :', score[0])
-    print('Validation accuracy:', score[1])
+    print(f"Validation_loss:{score[0]};Validation_accuracy:{score[1]};")
 
     ## --- End of your code  --- ##
 
     # Save the trained model
-    # Save to file in the current working directory
-    pkl_filename = os.path.join(os.environ['SM_MODEL_DIR'],"model.pkl")
-    print("Saving model to: {}".format(pkl_filename))
-    with open(pkl_filename, 'wb+') as file:
-        pickle.dump(model, file)
-        
-    print("File saved: {}".format(os.path.exists(pkl_filename)))
-    # joblib.dump(model, os.path.join(args.model_dir, "model.joblib"))
+    result = tf.contrib.saved_model.save_keras_model(model, os.environ['SM_MODEL_DIR'])
+    print(f"Save Keras Model result: {result}")
+ 
