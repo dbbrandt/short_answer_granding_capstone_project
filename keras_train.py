@@ -52,18 +52,6 @@ print(f"Longest answer: {max_length}")
 # Save Vocabulary
 pd.DataFrame(from_num_dict.values()).to_csv('data/seb/vocab.csv', index=False, header=None)
 
-decoded_answers = []
-for answer in data_answers:
-    arr = []
-    for i, word in enumerate(answer):
-        if i > 0 and word == 0:
-            pass
-        else:
-            arr.append(from_num_dict[word])
-    decoded_answers.append(arr)
-
-print(decoded_answers)
-
 X_train, X_test, y_train, y_test = train_test_split(data_answers, data_labels, test_size=0.30, random_state=72)
 
 # Generate a train.csv file for Sagemaker use

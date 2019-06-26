@@ -103,6 +103,17 @@ def encode_answers(raw_answers):
     padded_answers = np.array(padded_answers).astype('float')
     return max_length, padded_answers, from_num_dict, to_num_dict
 
+def decode_answers(encoded_answers, from_num_dict):
+
+    decoded_answers = []
+    for index, answer in enumerate(encoded_answers):
+        arr = [index, answer[0]]
+        for i, word in enumerate(answer):
+            if i > 0 and word != 0:
+                arr.append(from_num_dict[word])
+        decoded_answers.append(arr)
+    return decoded_answers
+
 def generate_data(answer_df):
 
     max_length, encoded_answers, from_num_dict, to_num_dict = encode_answers(answer_df[answer_col].values)

@@ -18,7 +18,7 @@ from tensorflow.contrib.saved_model import save_keras_model
 
 from sklearn.model_selection import train_test_split
 
-from source.utils import read_xml_qanda, evaluate, generate_data
+from source.utils import read_xml_qanda, evaluate, generate_data, decode_answers
 
 answer_col = 'answer'
 predictor_col = 'correct'
@@ -47,21 +47,8 @@ print(f"Sample Size: {len(data_answers)}")
 print(data_labels)
 print(f"Longest answer: {max_length}")
 
-
 # Save Vocabulary
 pd.DataFrame(from_num_dict.values()).to_csv('data/seb/vocab.csv', index=False, header=None)
-
-decoded_answers = []
-for answer in data_answers:
-    arr = []
-    for i, word in enumerate(answer):
-        if i > 0 and word == 0:
-            pass
-        else:
-            arr.append(from_num_dict[word])
-    decoded_answers.append(arr)
-
-print(decoded_answers)
 
 X_train, X_test, y_train, y_test = train_test_split(data_answers, data_labels, test_size=0.30, random_state=72)
 
@@ -81,11 +68,16 @@ answers_df = pd.DataFrame(X_test)
 test_data = pd.concat([labels_df, answers_df], axis=1)
 test_data.to_csv('data/seb/test.csv', index=False)
 
+raw_answers = decode_answers(test_data.values, from_num_dict)
+for answer in raw_answers:
+    print(f"{answer[0]}. correct: {answer[1]} answer: {' '.join(answer[2:])}")
+
+
 model = Sequential()
-model.add(Embedding(len(from_num_dict), 53, input_length=max_length))
-model.add(Dropout(0.3))
-model.add(LSTM(120, return_sequences=False, input_shape=(max_length,)))
-model.add(Dropout(0.3))
+model.add(Embedding(len(from_num_dict), 54, input_length=max_length))
+model.add(Dropout(0.22))
+model.add(LSTM(100, return_sequences=False, input_shape=(max_length,)))
+model.add(Dropout(0.22))
 model.add(Dense(1, activation="linear"))
 # compile the model
 optimizer = AdamOptimizer()
