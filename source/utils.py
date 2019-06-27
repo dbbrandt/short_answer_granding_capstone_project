@@ -10,6 +10,7 @@ from bs4 import BeautifulSoup
 
 answer_col = 'answer'
 predictor_col = 'correct'
+question_id_file = 'data/sag2/files'
 
 def get_xml_elements(doc, tag):
     elements = doc.getElementsByTagName(tag)
@@ -82,7 +83,12 @@ def simplified_answer(answer):
 
     return ' '.join(words)
 
-def encode_answers(raw_answers):
+def id_map():
+    ids = pd.read_csv(question_id_file, dtype={'id': str})['id'].values
+    id_to_num = {id: i for i, id in enumerate(ids)}
+    return id_to_num
+
+def encode_answers(raw_answers, category_col=None, category_data=[]):
     answers = [simplified_answer(answer) for answer in raw_answers]
     # answers = raw_answers
     vocab_string = " ".join(answers)
@@ -91,9 +97,11 @@ def encode_answers(raw_answers):
     to_num_dict = {word: i for i, word in enumerate(vocabulary)}
     from_num_dict = {i: word for i, word in enumerate(vocabulary)}
 
+    id_to_num = id_map() if category_col else []
+
     encoded_answers = []
-    for answer in answers:
-        arr = []
+    for index, answer in enumerate(answers):
+        arr = [float(id_to_num[category_data[index]])] if category_col else []
         for word in answer.split(' '):
             arr.append(to_num_dict[word])
         encoded_answers.append(arr)
@@ -114,17 +122,19 @@ def decode_answers(encoded_answers, from_num_dict):
         decoded_answers.append(arr)
     return decoded_answers
 
-def generate_data(answer_df):
+def generate_data(answer_df, subset=1, category_col=None):
 
-    max_length, encoded_answers, from_num_dict, to_num_dict = encode_answers(answer_df[answer_col].values)
+    max_length, encoded_answers, from_num_dict, to_num_dict = encode_answers(answer_df[answer_col].values,
+                                                                             category_col, answer_df['id'])
 
     encoded_answer_df = pd.DataFrame(encoded_answers)
     encoded_answer_df[predictor_col] = answer_df[predictor_col].astype(float)
 
     # randomize data
     randomized_data = encoded_answer_df.reindex(np.random.permutation(encoded_answer_df.index))
-    randomized_labels = randomized_data[predictor_col].values
-    randomized_answers = randomized_data.drop([predictor_col], axis=1).values
+    max = int(len(randomized_data) * subset)
+    randomized_labels = randomized_data[predictor_col].values[:max]
+    randomized_answers = randomized_data.drop([predictor_col], axis=1).values[:max]
 
     return randomized_answers, randomized_labels, max_length, from_num_dict, to_num_dict
 
