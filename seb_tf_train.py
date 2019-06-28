@@ -11,8 +11,9 @@ from numpy.random import seed
 from tensorflow import set_random_seed
 
 from tensorflow.python.keras import Sequential
-from tensorflow.python.keras.layers import Dense, Embedding, Dropout, LSTM
+from tensorflow.python.keras.layers import Dense, Embedding, Dropout, LSTM, Flatten, Reshape
 from tensorflow.python.training.adam import AdamOptimizer
+from tensorflow.python.keras.callbacks import EarlyStopping
 
 from tensorflow.contrib.saved_model import save_keras_model
 
@@ -45,7 +46,7 @@ def seb_data():
     print(f"Sample Size: {len(data_answers)}")
     print(data_labels)
     print(f"Longest answer: {max_length}")
-
+    print(f"Vocabulary Size:{len(from_num_dict)}")
     # Save Vocabulary
     pd.DataFrame(from_num_dict.values()).to_csv('data/seb/vocab.csv', index=False, header=None)
 
@@ -74,11 +75,15 @@ def seb_data():
 
 X_train, y_train, X_test, y_test, max_length, from_num_dict = seb_data()
 
+embedding_dim = 30
 model = Sequential()
-model.add(Embedding(len(from_num_dict), 54, input_length=max_length))
-model.add(Dropout(0.22))
-model.add(LSTM(100, return_sequences=False, input_shape=(max_length,)))
-model.add(Dropout(0.22))
+model.add(Embedding(len(from_num_dict), embedding_dim, input_length=max_length))
+model.add(Dropout(0.2))
+# model.add(Flatten())
+# model.add(Reshape((1,embedding_dim * max_length)))
+#model.add(LSTM(100, return_sequences=True, input_shape=(max_length,)))
+model.add(LSTM(50, return_sequences=False))
+model.add(Dropout(0.2))
 model.add(Dense(1, activation="linear"))
 # compile the model
 optimizer = AdamOptimizer()
@@ -88,8 +93,11 @@ model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['acc'])
 # summarize the model
 print(model.summary())
 
+early_stopping_monitor = EarlyStopping(patience=400)
+
 # fit the model
-model.fit(X_train, y_train, epochs=200, verbose=0, validation_data=(X_test, y_test))
+#model.fit(X_train, y_train, callbacks=[early_stopping_monitor], epochs=400, verbose=0, validation_data=(X_test, y_test))
+model.fit(X_train, y_train, epochs=50, verbose=1, validation_data=(X_test, y_test))
 
 # evaluate the model
 print(f"test_answers shape: {X_train.shape}")
@@ -98,9 +106,9 @@ print('Accuracy: %f' % (accuracy*100))
 print('Loss: %f' % loss)
 
 scores = evaluate(model, X_test, y_test)
-result = save_keras_model(model, 'model')
+#result = save_keras_model(model, 'model')
 
-print(f"Save Keras Model result: {result}")
+#print(f"Save Keras Model result: {result}")
 
 # Results
 # Embedding: 30, Dropout: 0.2, LSTM: 100, optmizer: Adam, epochs: 200, Train Tst Split: .3 => Accuracy: 72.7%

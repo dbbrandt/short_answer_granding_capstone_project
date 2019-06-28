@@ -48,7 +48,9 @@ def evaluate(predictor, test_features, test_labels, verbose=True):
     """
 
     # rounding and squeezing array
-    test_preds = np.squeeze(np.round(predictor.predict(test_features)))
+    test_preds = np.squeeze(predictor.predict(test_features))
+    print(f"Min preds: {min(test_preds)} max_preds: {max(test_preds)}")
+    test_preds = np.round(test_preds)
 
     # calculate true positives, false positives, true negatives, false negatives
     tp = np.logical_and(test_labels, test_preds).sum()
@@ -124,8 +126,11 @@ def decode_answers(encoded_answers, from_num_dict):
 
 def generate_data(answer_df, subset=1, category_col=None):
 
-    max_length, encoded_answers, from_num_dict, to_num_dict = encode_answers(answer_df[answer_col].values,
+    if category_col:
+         max_length, encoded_answers, from_num_dict, to_num_dict = encode_answers(answer_df[answer_col].values,
                                                                              category_col, answer_df['id'])
+    else:
+        max_length, encoded_answers, from_num_dict, to_num_dict = encode_answers(answer_df[answer_col].values)
 
     encoded_answer_df = pd.DataFrame(encoded_answers)
     encoded_answer_df[predictor_col] = answer_df[predictor_col].astype(float)
