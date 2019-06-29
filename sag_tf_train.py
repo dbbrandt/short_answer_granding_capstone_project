@@ -1,120 +1,34 @@
-import pandas as pd
+from source.utils import train_and_test, load_sag_data
 
+def main():
+    model_dir = 'model/sag'
+    model_file = '20pct'  # used to load existing model if train is false
+    train = True
+    data_percentage = 0.2
 
-# from keras.layers.core import Dropout
-# from keras.models import Sequential
-# from keras.layers import Dense, Embedding
-# from keras.layers import LSTM
+    X_train, y_train, X_test, y_test, max_answer_len, vocabulary = load_sag_data(data_percentage)
 
+    model_params = {'max_answer_len': max_answer_len,
+                    'vocab_size': len(vocabulary),
+                    'epochs': 30,
+                    'embedding_dim': 50,
+                    'flatten': True,
+                    'lstm_dim_1': 100,
+                    'lstm_dim_2': 20,
+                    'dropout': 0.2}
 
-from numpy.random import seed
-from tensorflow import set_random_seed
+    # Trains model if train=True and prints out metrics on results (see below)
+    train_and_test(model_dir, model_file, model_params, X_train, y_train, X_test, y_test, train)
 
-from tensorflow.python.keras import Sequential
-from tensorflow.python.keras.layers import Dense, Embedding, Dropout, LSTM, Input, Masking
-from tensorflow.python.training.adam import AdamOptimizer
+main()
 
-from tensorflow.contrib.saved_model import save_keras_model
-
-from sklearn.model_selection import train_test_split
-
-from source.utils import read_xml_qanda, evaluate, generate_data, decode_answers
-
-answer_col = 'answer'
-predictor_col = 'correct'
-
-def sag_data():
-    # filename = 'data/sag2/answers.csv'
-    filename = 'data/sag2/balanced_answers.csv'
-
-    seed(72) # Python
-    set_random_seed(72) # Tensorflow
-
-    answer_df = pd.read_csv(filename, dtype={'id': str})
-
-    print(answer_df)
-
-    data_answers, data_labels, max_length, from_num_dict, to_num_dict = generate_data(answer_df, 0.1, 'id')
-
-    print(data_answers)
-    print(f"Sample Size: {len(data_answers)}")
-    print(data_labels)
-    print(f"Longest answer: {max_length}")
-
-    # Save Vocabulary
-    pd.DataFrame(from_num_dict.values()).to_csv('data/sag2/vocab.csv', index=False, header=None)
-
-    X_train, X_test, y_train, y_test = train_test_split(data_answers, data_labels, test_size=0.30, random_state=72)
-
-    # Generate a train.csv file for Sagemaker use
-    labels_df = pd.DataFrame(y_train)
-    answers_df = pd.DataFrame(X_train)
-    test_data = pd.concat([labels_df, answers_df], axis=1)
-    test_data.to_csv('data/sag2/train.csv', index=False)
-    train_x = test_data.iloc[:, 1:]
-    max_length = train_x.values.shape[1]
-    print(f"Test Data columns: {max_length}")
-
-    # Generate a test.csv file for predictions
-    labels_df = pd.DataFrame(y_test)
-    answers_df = pd.DataFrame(X_test)
-    test_data = pd.concat([labels_df, answers_df], axis=1)
-    test_data.to_csv('data/sag2/test.csv', index=False)
-
-    raw_answers = decode_answers(test_data.values, from_num_dict)
-    for answer in raw_answers:
-        print(f"{answer[0]}. correct: {answer[1]} answer: {' '.join(answer[2:])}")
-
-    return X_train, y_train, X_test, y_test, max_length, from_num_dict
-
-X_train, y_train, X_test, y_test, max_length, from_num_dict = sag_data()
-
-EPOCHS = 10
-# INIT_LR = 1e-3
-
-model = Sequential()
-model.add(Input(shape=(max_length,)))
-model.add(Masking(mask_value=0., input_shape=(max_length,)))
-model.add(Embedding(len(from_num_dict), 10, input_length=max_length))
-model.add(Dropout(0.2))
-model.add(LSTM(50, return_sequences=False, input_shape=(max_length,)))
-model.add(Dropout(0.2))
-model.add(Dense(1, activation="linear"))
-# model.add(Dense(1, activation="sigmoid"))
-# compile the model
-optimizer = AdamOptimizer()
-# optimizer=AdamOptimizer(learning_rate=INIT_LR)
-model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['acc'])
-# model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['acc'])
-
-# model.compile(optimizer='rmsprop', loss='mean_squared_error', metrics=['acc'])
-
-# summarize the model
-print(model.summary())
-
-# fit the model
-model.fit(X_train, y_train, epochs=EPOCHS, verbose=1, validation_data=(X_test, y_test))
-
-# evaluate the model
-print(f"test_answers shape: {X_train.shape}")
-loss, accuracy = model.evaluate(X_train, y_train, verbose=0)
-print('Accuracy: %f' % (accuracy*100))
-print('Loss: %f' % loss)
-
-scores = evaluate(model, X_test, y_test)
-
-pred = model.predict(X_test)
-print(pred)
-# result = save_keras_model(model, 'model')
-
-# print(f"Save Keras Model result: {result}")
-
+# =================================================================
 # Results
+# =================================================================
 # Embedding: 200, Dropout: 0.2, LSTM: 200, optmizer: Adam, epochs: 10, Train Tst Split: .3 => Accuracy: 72.7%
 # Racal: 1   never predics false
 # _________________________________________________________________
 # Layer (type)                 Output Shape              Param #
-# =================================================================
 # embedding_1 (Embedding)      (None, 47, 30)            4050
 # _________________________________________________________________
 # dropout_1 (Dropout)          (None, 47, 30)            0
@@ -281,3 +195,307 @@ print(pred)
 # Switch back to Linear and mean_squared_error and added a Masking layer to mask 0's
 # Balanced data 40 points 50/50 split correct/incorrect.
 # Just shifted all the answers to false
+
+# ==================================
+# Embedding: 50, Dropout: 0.2, LSTM: 100, optmizer: Adam, epochs: 20, Train Tst Split: .3 => Accuracy: 65.9%
+# Added in Flattening and Shaping after Embedding Layer as suggested by documentation for Embedding.
+# Small Dataset : Train on 93 samples, validate on 41 samples
+# Normalized predictions
+# Accuracy: 100.000000
+# Loss: 0.011860
+# Min preds: 0.18662022054195404 max_preds: 0.6710594892501831
+# predictions  0.0  1.0
+# actuals
+# 0.0           12    5
+# 1.0            9   15
+#
+# Recall:     0.625
+# Precision:  0.750
+# Accuracy:   0.659
+# ==================================
+# Embedding: 50, Dropout: 0.2, LSTM: 100, optmizer: Adam, epochs: 50, Train Tst Split: .3 => Accuracy: 63.4%
+# Added in Flattening and Shaping after Embedding Layer as suggested by documentation for Embedding.
+# Small Dataset : Train on 93 samples, validate on 41 samples
+# Normalized predictions
+# Accuracy: 100.000000
+# Loss: 0.001300
+# Min preds: 0.020597627386450768 max_preds: 0.7078230977058411
+# predictions  0.0  1.0
+# actuals
+# 0.0            7   10
+# 1.0            5   19
+#
+# Recall:     0.792
+# Precision:  0.655
+# Accuracy:   0.634
+# ==================================
+# Embedding: 50, Dropout: 0.2, LSTM: 100, optmizer: Adam, epochs: 50, Train Tst Split: .3 => Accuracy: 56.8%
+# Move to 20% of data: Train on 187 samples, validate on 81 samples
+# Accuracy: 100.000000
+# Loss: 0.003250
+# Min preds: 0.0336155965924263 max_preds: 0.9188557863235474
+# predictions  0.0  1.0
+# actuals
+# 0.0           25   15
+# 1.0           20   21
+#
+# Recall:     0.512
+# Precision:  0.583
+# Accuracy:   0.568
+# ==================================
+# Embedding: 100, Dropout: 0.2, LSTM 1: 100, LSTM 2: 20, optmizer: Adam, epochs: 50, Train Tst Split: .3 => Accuracy: 65.4%
+# Move to 20% of data: Train on 187 samples, validate on 81 samples
+# Increase embedding to 100
+# Accuracy: 100.000000
+# Loss: 0.002413
+# Min preds: 0.0002403445541858673 max_preds: 0.983460009098053
+# predictions  0.0  1.0
+# actuals
+# 0.0           31    9
+# 1.0           19   22
+#
+# Recall:     0.537
+# Precision:  0.710
+# Accuracy:   0.654
+# ==================================
+# Embedding: 200, Dropout: 0.2, LSTM: 100, optmizer: Adam, epochs: 20, Train Tst Split: .3 => Accuracy: 65.4%
+# Move to 20% of data: Train on 187 samples, validate on 81 samples
+# Increase embedding to 200, reduce epocs to 20 as previous stabilized at about 15
+# Note: Not converging but demonstrates that the previous run was not helping.
+# Run with 50 embeddings had a better range of predicts.
+# Accuracy: 49.197862
+# Loss: 0.245283
+# Min preds: 0.47573280334472656 max_preds: 0.48620232939720154
+# predictions  0.0  1.0
+# actuals
+# 0.0           29   11
+# 1.0           17   24
+#
+# Recall:     0.585
+# Precision:  0.686
+# Accuracy:   0.654
+# ==================================
+# Embedding: 50, Dropout: 0.2, LSTM: 100, optmizer: Adam, epochs: 20, Train Tst Split: .3 => Accuracy: 56.8%
+# Move to 20% of data: Train on 187 samples, validate on 81 samples
+# Decrease embedding back to 50, reduce epocs to 20 as previous stabilized at about 15
+# Accuracy: 100.000000
+# Loss: 0.004790
+# Min preds: 0.15179654955863953 max_preds: 1.0073564052581787
+# predictions  0.0  1.0
+# actuals
+# 0.0           30   10
+# 1.0           25   16
+#
+# Recall:     0.390
+# Precision:  0.615
+# Accuracy:   0.568
+# ==================================
+# Embedding: 50, Dropout: 0.2, LSTM: 200, optmizer: Adam, epochs: 20, Train Tst Split: .3 => Accuracy: 56.8%
+# Move to 20% of data: Train on 187 samples, validate on 81 samples
+# Increase LSTM to 200
+# Accuracy: 100.000000
+# Loss: 0.003766
+# Min preds: 0.14939424395561218 max_preds: 0.9931410551071167
+# predictions  0.0  1.0
+# actuals
+# 0.0           31    9
+# 1.0           26   15
+#
+# Recall:     0.366
+# Precision:  0.625
+# Accuracy:   0.568
+# ==================================
+# Embedding: 50, Dropout: 0.2, LSTM: 200, optmizer: Adam, epochs: 20, Train Tst Split: .3 => Accuracy: 68%
+# Move to 20% of data: Train on 187 samples, validate on 81 samples
+# Switch from balanced to actual data which is 1/3 incorrect 2/3 correct.
+# Note; This imporved the balance of correct and incorrect.
+# Accuracy: 100.000000
+# Loss: 0.002546
+# Min preds: -0.07342652231454849 max_preds: 1.2405585050582886
+# predictions  0.0  1.0
+# actuals
+# 0.0           23   20
+# 1.0           27   77
+#
+# Recall:     0.740
+# Precision:  0.794
+# Accuracy:   0.680
+# ==================================
+# Embedding: 50, Dropout: 0.2, LSTM: 100, optmizer: Adam, epochs: 20, Train Tst Split: .3 => Accuracy: 69.4%
+# Move to 20% of data: Train on 187 samples, validate on 81 samples
+# Using acutal (not balanced data).
+# Reduced LSTM back to 100
+# Accuracy: 100.000000
+# Loss: 0.009522
+# Min preds: -0.12270881980657578 max_preds: 1.2196975946426392
+# predictions  0.0  1.0
+# actuals
+# 0.0           25   18
+# 1.0           27   77
+#
+# Recall:     0.740
+# Precision:  0.811
+# Accuracy:   0.694
+# ==================================
+# Embedding: 50, Dropout: 0.2, LSTM 1: 100, LSTM 2: 20, optmizer: Adam, epochs: 50, Train Tst Split: .3 => Accuracy: 72.8%
+# Move to 20% of data: Train on 187 samples, validate on 81 samples
+# Using acutal (not balanced data).
+# Added a second layer of LSTM, increased Epocs to 50
+# Note: Squed results to Recal.
+
+# Accuracy: 100.000000
+# Loss: 0.002845
+# Min preds: -0.022228777408599854 max_preds: 0.9874494075775146
+# predictions  0.0  1.0
+# actuals
+# 0.0           13   30
+# 1.0           10   94
+#
+# Recall:     0.904
+# Precision:  0.758
+# Accuracy:   0.728
+
+# ==================================
+# Embedding: 50, Dropout: 0.2, LSTM 1: 100, LSTM 2: 20, optmizer: Adam, epochs: 50, Train Tst Split: .3 => Accuracy: 58.0%
+# 20% of data: Train on 187 samples, validate on 81 samples
+# Using balanced data to increase flase predictions.
+# Second layer of LSTM, increased Epocs to 50
+# Note: Drastically reduced true positives.
+# Accuracy: 100.000000
+# Loss: 0.001701
+# Min preds: 0.005335822701454163 max_preds: 1.017879605293274
+# predictions  0.0  1.0
+# actuals
+# 0.0           23   17
+# 1.0           17   24
+#
+# Recall:     0.585
+# Precision:  0.585
+# Accuracy:   0.580
+
+# ==================================
+# Embedding: 50, Dropout: 0.2, LSTM 1: 100, LSTM 2: 50, optmizer: Adam, epochs: 50, Train Tst Split: .3 => Accuracy: 70.1%
+# 20% of data: Train on 187 samples, validate on 81 samples
+# Second layer of LSTM, increased Epocs to 50
+# Min preds: -0.007130637764930725 max_preds: 1.0701065063476562
+# predictions  0.0  1.0
+# actuals
+# 0.0           13   30
+# 1.0           14   90
+#
+# Recall:     0.865
+# Precision:  0.750
+# Accuracy:   0.701
+# ==================================
+# Embedding: 50, Dropout: 0.2, LSTM 1: 50, LSTM 2: 50, optmizer: Adam, epochs: 50, Train Tst Split: .3 => Accuracy: 71.4%
+# 20% of data: Train on 187 samples, validate on 81 samples
+# Reduced First layer of LSTM
+# Accuracy: 100.000000
+# Loss: 0.000561
+# Min preds: -0.012730248272418976 max_preds: 1.0793601274490356
+# predictions  0.0  1.0
+# actuals
+# 0.0           14   29
+# 1.0           13   91
+#
+# Recall:     0.875
+# Precision:  0.758
+# Accuracy:   0.714
+
+# ==================================
+# Refactored model build out of main
+# ==================================
+# Embedding: 50, Dropout: 0.2, LSTM 1: 100, LSTM 2: 20, optmizer: Adam, epochs: 30, Train Tst Split: .3 => Accuracy: 71.4%
+# 20% of data: Train on 187 samples, validate on 81 samples
+## Lowered epocs to 30 which was stable
+# Results were the same.
+
+
+# ==================================
+# Ran saved model on full dataset and save model from best run 71.4%
+# ==================================
+# Embedding: 50, Dropout: 0.2, LSTM 1: 100, LSTM 2: 20, optmizer: Adam, epochs: 30, Train Tst Split: .3 => Accuracy: 76.8%
+# Layer (type)                 Output Shape              Param #
+# =================================================================
+# embedding (Embedding)        (None, 176, 50)           98150
+# _________________________________________________________________
+# dropout (Dropout)            (None, 176, 50)           0
+# _________________________________________________________________
+# flatten (Flatten)            (None, 8800)              0
+# _________________________________________________________________
+# reshape (Reshape)            (None, 1, 8800)           0
+# _________________________________________________________________
+# lstm (LSTM)                  (None, 1, 100)            3560400
+# _________________________________________________________________
+# lstm_1 (LSTM)                (None, 20)                9680
+# _________________________________________________________________
+# dropout_1 (Dropout)          (None, 20)                0
+# _________________________________________________________________
+# dense (Dense)                (None, 1)                 21
+# =================================================================
+# Total params: 3,668,251
+# Trainable params: 3,668,251
+# Non-trainable params: 0
+# _________________________________________________________________
+# None
+# Min preds: -0.06254398822784424 max_preds: 1.1257044076919556
+# predictions  0.0  1.0
+# actuals
+# 0.0           83  119
+# 1.0           51  480
+#
+# Recall:     0.904
+# Precision:  0.801
+# Accuracy:   0.768
+
+# =================================================================
+# Train using full data (70/30 split)
+# =================================================================
+# Embedding: 50, Dropout: 0.2, LSTM 1: 100, LSTM 2: 20, optmizer: Adam, epochs: 30, Train Tst Split: .3 => Accuracy: 76.7%
+# 100% of data:
+# Note: Same results as running off 20% data training. Slight higher precision
+
+# predictions  0.0  1.0
+# actuals
+# 0.0          102  100
+# 1.0           71  460
+#
+# Recall:     0.866
+# Precision:  0.821
+# Accuracy:   0.767
+
+# =================================================================
+# Restuls of predict on full data set (train and test)
+# =================================================================
+# Layer (type)                 Output Shape              Param #
+# =================================================================
+# embedding (Embedding)        (None, 176, 50)           98150
+# _________________________________________________________________
+# dropout (Dropout)            (None, 176, 50)           0
+# _________________________________________________________________
+# flatten (Flatten)            (None, 8800)              0
+# _________________________________________________________________
+# reshape (Reshape)            (None, 1, 8800)           0
+# _________________________________________________________________
+# lstm (LSTM)                  (None, 1, 100)            3560400
+# _________________________________________________________________
+# lstm_1 (LSTM)                (None, 20)                9680
+# _________________________________________________________________
+# dropout_1 (Dropout)          (None, 20)                0
+# _________________________________________________________________
+# dense (Dense)                (None, 1)                 21
+# =================================================================
+# Total params: 3,668,251
+# Trainable params: 3,668,251
+# Non-trainable params: 0
+# _________________________________________________________________
+# None
+# Min preds: -0.06451256573200226 max_preds: 1.1399285793304443
+# predictions  0.0   1.0
+# actuals
+# 0.0          275   396
+# 1.0          155  1616
+#
+# Recall:     0.912
+# Precision:  0.803
+# Accuracy:   0.774

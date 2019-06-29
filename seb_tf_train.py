@@ -1,116 +1,28 @@
-import pandas as pd
+from source.utils import train_and_test, load_seb_data
 
+def main():
+    model_dir = 'model/seb'
+    model_file = 'baseline'
+    train = True
 
-# from keras.layers.core import Dropout
-# from keras.models import Sequential
-# from keras.layers import Dense, Embedding
-# from keras.layers import LSTM
+    X_train, y_train, X_test, y_test, max_answer_len, vocabulary = load_seb_data()
 
+    model_params = {'max_answer_len': max_answer_len,
+                    'vocab_size': len(vocabulary),
+                    'epochs': 200,
+                    'embedding_dim': 50,
+                    'flatten': False,
+                    'lstm_dim_1': 100,
+                    'lstm_dim_2': 0,
+                    'dropout': 0.2}
 
-from numpy.random import seed
-from tensorflow import set_random_seed
+    train_and_test(model_dir, model_file, model_params, X_train, y_train, X_test, y_test, train)
 
-from tensorflow.python.keras import Sequential
-from tensorflow.python.keras.layers import Dense, Embedding, Dropout, LSTM, Flatten, Reshape
-from tensorflow.python.training.adam import AdamOptimizer
-from tensorflow.python.keras.callbacks import EarlyStopping
+main()
 
-from tensorflow.contrib.saved_model import save_keras_model
-
-from sklearn.model_selection import train_test_split
-
-from source.utils import read_xml_qanda, evaluate, generate_data, decode_answers
-
-def seb_data():
-    filenames = {'em': 'data/sciEntsBank/EM-post-35.xml',
-                 'me': 'data/sciEntsBank/ME-inv1-28b.xml',
-                 'mx': 'data/sciEntsBank/MX-inv1-22a.xml',
-                 'ps': 'data/sciEntsBank/PS-inv3-51a.xml'}
-
-
-    seed(72) # Python
-    set_random_seed(72) # Tensorflow
-
-    # question, reference_answer, answer_df = read_xml_qanda(filenames['ps'])
-    answer_df = pd.DataFrame()
-    for filename in filenames.values():
-        answers = read_xml_qanda(filename)
-        answer_df = pd.concat([answer_df, answers], axis=0, ignore_index=True)
-
-    print(answer_df)
-    answer_df.to_csv('data/seb/raw_data.csv', index=False)
-
-    data_answers, data_labels, max_length, from_num_dict, to_num_dict = generate_data(answer_df)
-
-    print(data_answers)
-    print(f"Sample Size: {len(data_answers)}")
-    print(data_labels)
-    print(f"Longest answer: {max_length}")
-    print(f"Vocabulary Size:{len(from_num_dict)}")
-    # Save Vocabulary
-    pd.DataFrame(from_num_dict.values()).to_csv('data/seb/vocab.csv', index=False, header=None)
-
-    X_train, X_test, y_train, y_test = train_test_split(data_answers, data_labels, test_size=0.30, random_state=72)
-
-    # Generate a train.csv file for Sagemaker use
-    labels_df = pd.DataFrame(y_train)
-    answers_df = pd.DataFrame(X_train)
-    test_data = pd.concat([labels_df, answers_df], axis=1)
-    test_data.to_csv('data/seb/train.csv', index=False)
-    train_x = test_data.iloc[:, 1:]
-    max_length = train_x.values.shape[1]
-    print(f"Test Data columns: {max_length}")
-
-    # Generate a test.csv file for predictions
-    labels_df = pd.DataFrame(y_test)
-    answers_df = pd.DataFrame(X_test)
-    test_data = pd.concat([labels_df, answers_df], axis=1)
-    test_data.to_csv('data/seb/test.csv', index=False)
-
-    raw_answers = decode_answers(test_data.values, from_num_dict)
-    for answer in raw_answers:
-        print(f"{answer[0]}. correct: {answer[1]} answer: {' '.join(answer[2:])}")
-
-    return X_train, y_train, X_test, y_test, max_length, from_num_dict
-
-X_train, y_train, X_test, y_test, max_length, from_num_dict = seb_data()
-
-embedding_dim = 30
-model = Sequential()
-model.add(Embedding(len(from_num_dict), embedding_dim, input_length=max_length))
-model.add(Dropout(0.2))
-# model.add(Flatten())
-# model.add(Reshape((1,embedding_dim * max_length)))
-#model.add(LSTM(100, return_sequences=True, input_shape=(max_length,)))
-model.add(LSTM(50, return_sequences=False))
-model.add(Dropout(0.2))
-model.add(Dense(1, activation="linear"))
-# compile the model
-optimizer = AdamOptimizer()
-model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['acc'])
-# model.compile(optimizer='adam', loss='mean_squared_error', metrics=['acc'])
-# model.compile(optimizer='rmsprop', loss='mean_squared_error', metrics=['acc'])
-# summarize the model
-print(model.summary())
-
-early_stopping_monitor = EarlyStopping(patience=400)
-
-# fit the model
-#model.fit(X_train, y_train, callbacks=[early_stopping_monitor], epochs=400, verbose=0, validation_data=(X_test, y_test))
-model.fit(X_train, y_train, epochs=50, verbose=1, validation_data=(X_test, y_test))
-
-# evaluate the model
-print(f"test_answers shape: {X_train.shape}")
-loss, accuracy = model.evaluate(X_train, y_train, verbose=0)
-print('Accuracy: %f' % (accuracy*100))
-print('Loss: %f' % loss)
-
-scores = evaluate(model, X_test, y_test)
-#result = save_keras_model(model, 'model')
-
-#print(f"Save Keras Model result: {result}")
-
-# Results
+# =================================================================
+# Test Results
+# =================================================================
 # Embedding: 30, Dropout: 0.2, LSTM: 100, optmizer: Adam, epochs: 200, Train Tst Split: .3 => Accuracy: 72.7%
 # _________________________________________________________________
 # Layer (type)                 Output Shape              Param #
@@ -270,3 +182,107 @@ scores = evaluate(model, X_test, y_test)
 # Recall:     0.471
 # Precision:  0.727
 # Accuracy:   0.714
+#=======================
+# 6/28/19
+#=======================
+# Embedding: 50, Dropout: 0.2, LSTM: 100, optmizer: Adam, epochs: 200, Train Tst Split: .3 => Accuracy: 76.2%
+# Note: Stabalized at 76.2% at 194 epochs
+# Also min and max are not greater than range 0 to 1. This should be normalized. -0.28 - 1.01
+# Layer (type)                 Output Shape              Param #
+# =================================================================
+# embedding (Embedding)        (None, 47, 50)            11700
+# _________________________________________________________________
+# dropout (Dropout)            (None, 47, 50)            0
+# _________________________________________________________________
+# lstm (LSTM)                  (None, 100)               60400
+# _________________________________________________________________
+# dropout_1 (Dropout)          (None, 100)               0
+# _________________________________________________________________
+# dense (Dense)                (None, 1)                 101
+# =================================================================
+# Total params: 72,201
+# Trainable params: 72,201
+# Non-trainable params: 0
+# _________________________________________________________________
+# None
+# Train on 98 samples, validate on 42 samples
+# Accuracy: 100.000000
+# Loss: 0.000223
+# Min preds: -0.28002065420150757 max_preds: 1.016097068786621
+# predictions  0.0  1.0
+# actuals
+# 0.0           22    3
+# 1.0            7   10
+#
+# Recall:     0.588
+# Precision:  0.769
+# Accuracy:   0.762
+#
+# ==================================
+# Embedding: 50, Dropout: 0.2, LSTM: 100, optmizer: Adam, epochs: 200, Train Tst Split: .3 => Accuracy: 76.2%
+# Adding in Flattening and Shaping after Embedding Layer as suggested by documentation for Embedding.
+# Note the range is smaller and thus under states the correct answers and needs to be normalized
+# _________________________________________________________________
+# Layer (type)                 Output Shape              Param #
+# =================================================================
+# embedding (Embedding)        (None, 47, 50)            11700
+# _________________________________________________________________
+# dropout (Dropout)            (None, 47, 50)            0
+# _________________________________________________________________
+# flatten (Flatten)            (None, 2350)              0
+# _________________________________________________________________
+# reshape (Reshape)            (None, 1, 2350)           0
+# _________________________________________________________________
+# lstm (LSTM)                  (None, 100)               980400
+# _________________________________________________________________
+# dropout_1 (Dropout)          (None, 100)               0
+# _________________________________________________________________
+# dense (Dense)                (None, 1)                 101
+# =================================================================
+# Total params: 992,201
+# Trainable params: 992,201
+# Non-trainable params: 0
+# __________________________
+# Accuracy: 100.000000
+# Loss: 0.000942
+# Min preds: -0.03355398774147034 max_preds: 0.7395308613777161
+# predictions  0.0  1.0
+# actuals
+# 0.0           23    2
+# 1.0           14    3
+#
+# Recall:     0.176
+# Precision:  0.600
+# Accuracy:   0.619
+# ==================================
+# Embedding: 50, Dropout: 0.2, LSTM: 100, optmizer: Adam, epochs: 200, Train Tst Split: .3 => Accuracy: 76.2%
+# Added in Flattening and Shaping after Embedding Layer as suggested by documentation for Embedding.
+# Normalize the prediction (p - min)/(max - min)
+# Accuracy: 100.000000
+# Loss: 0.000942
+# Min preds: -0.03355398774147034 max_preds: 0.7395308613777161
+# predictions  0.0  1.0
+# actuals
+# 0.0           17    8
+# 1.0           10    7
+#
+# Recall:     0.412
+# Precision:  0.467
+# Accuracy:   0.571
+
+# ==================================
+# Embedding: 50, Dropout: 0.2, LSTM: 100, optmizer: Adam, epochs: 200, Train Tst Split: .3 => Accuracy: 73.8%
+# Removed in Flattening and Shaping.
+# Normalize the prediction (p - min)/(max - min)
+# Accuracy: 100.000000
+# Loss: 0.000223
+# Min preds: -0.28002065420150757 max_preds: 1.016097068786621
+# predictions  0.0  1.0
+# actuals
+# 0.0           21    4
+# 1.0            7   10
+#
+# Recall:     0.588
+# Precision:  0.714
+# Accuracy:   0.738
+# ==================================

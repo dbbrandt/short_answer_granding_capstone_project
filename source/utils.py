@@ -1,12 +1,19 @@
 from xml.dom import minidom
 import pandas as pd
 import numpy as np
-from keras.preprocessing.sequence import pad_sequences
-import nltk
-from nltk.corpus import stopwords
 from nltk.stem.porter import *
 import re
 from bs4 import BeautifulSoup
+from numpy.random import seed
+
+from keras.preprocessing.sequence import pad_sequences
+from sklearn.model_selection import train_test_split
+
+from tensorflow import set_random_seed
+from tensorflow.python.keras import Sequential
+from tensorflow.python.keras.layers import Dense, Embedding, Dropout, LSTM, Flatten, Reshape
+from tensorflow.python.training.adam import AdamOptimizer
+from tensorflow.contrib.saved_model import save_keras_model, load_keras_model
 
 answer_col = 'answer'
 predictor_col = 'correct'
@@ -35,6 +42,165 @@ def read_xml_qanda(filename):
     answers_df['reference_answer'] = reference_answer
     return answers_df
 
+def load_seb_data():
+    filenames = {'em': 'data/sciEntsBank/EM-post-35.xml',
+                 'me': 'data/sciEntsBank/ME-inv1-28b.xml',
+                 'mx': 'data/sciEntsBank/MX-inv1-22a.xml',
+                 'ps': 'data/sciEntsBank/PS-inv3-51a.xml'}
+
+
+    seed(72) # Python
+    set_random_seed(72) # Tensorflow
+
+    # question, reference_answer, answer_df = read_xml_qanda(filenames['ps'])
+    answer_df = pd.DataFrame()
+    for filename in filenames.values():
+        answers = read_xml_qanda(filename)
+        answer_df = pd.concat([answer_df, answers], axis=0, ignore_index=True)
+
+    print(answer_df)
+    answer_df.to_csv('data/seb/raw_data.csv', index=False)
+
+    data_answers, data_labels, max_length, from_num_vocab, to_num_vocab = generate_data(answer_df)
+
+    print(data_answers)
+    print(f"Sample Size: {len(data_answers)}")
+    print(data_labels)
+    print(f"Longest answer: {max_length}")
+    print(f"Vocabulary Size:{len(from_num_vocab)}")
+    # Save Vocabulary
+    pd.DataFrame(from_num_vocab.values()).to_csv('data/seb/vocab.csv', index=False, header=None)
+
+    X_train, X_test, y_train, y_test = train_test_split(data_answers, data_labels, test_size=0.30, random_state=72)
+
+    # Generate a train.csv file for Sagemaker use
+    labels_df = pd.DataFrame(y_train)
+    answers_df = pd.DataFrame(X_train)
+    test_data = pd.concat([labels_df, answers_df], axis=1)
+    test_data.to_csv('data/seb/train.csv', index=False)
+    train_x = test_data.iloc[:, 1:]
+    max_length = train_x.values.shape[1]
+    print(f"Test Data columns: {max_length}")
+
+    # Generate a test.csv file for predictions
+    labels_df = pd.DataFrame(y_test)
+    answers_df = pd.DataFrame(X_test)
+    test_data = pd.concat([labels_df, answers_df], axis=1)
+    test_data.to_csv('data/seb/test.csv', index=False)
+
+    raw_answers = decode_answers(test_data.values, from_num_vocab)
+    for answer in raw_answers:
+        print(f"{answer[0]}. correct: {answer[1]} answer: {' '.join(answer[2:])}")
+
+    return X_train, y_train, X_test, y_test, max_length, from_num_vocab
+
+def load_sag_data(percent_of_data):
+    filename = 'data/sag2/answers.csv'
+    # filename = 'data/sag2/balanced_answers.csv'
+
+    seed(72) # Python
+    set_random_seed(72) # Tensorflow
+
+    answer_df = pd.read_csv(filename, dtype={'id': str})
+
+    print(answer_df)
+
+    data_answers, data_labels, max_length, from_num_dict, to_num_dict = generate_data(answer_df, percent_of_data, 'id')
+
+    print(data_answers)
+    print(f"Sample Size: {len(data_answers)}")
+    print(data_labels)
+    print(f"Longest answer: {max_length}")
+
+    # Save Vocabulary
+    pd.DataFrame(from_num_dict.values()).to_csv('data/sag2/vocab.csv', index=False, header=None)
+
+    X_train, X_test, y_train, y_test = train_test_split(data_answers, data_labels, test_size=0.30, random_state=72)
+
+    # Generate a train.csv file for Sagemaker use
+    labels_df = pd.DataFrame(y_train)
+    answers_df = pd.DataFrame(X_train)
+    test_data = pd.concat([labels_df, answers_df], axis=1)
+    test_data.to_csv('data/sag2/train.csv', index=False)
+    train_x = test_data.iloc[:, 1:]
+    max_length = train_x.values.shape[1]
+    print(f"Test Data columns: {max_length}")
+
+    # Generate a test.csv file for predictions
+    labels_df = pd.DataFrame(y_test)
+    answers_df = pd.DataFrame(X_test)
+    test_data = pd.concat([labels_df, answers_df], axis=1)
+    test_data.to_csv('data/sag2/test.csv', index=False)
+
+    raw_answers = decode_answers(test_data.values, from_num_dict)
+    for answer in raw_answers:
+        print(f"{answer[0]}. correct: {answer[1]} answer: {' '.join(answer[2:])}")
+
+    return X_train, y_train, X_test, y_test, max_length, from_num_dict
+
+def build_model(params):
+    model = Sequential()
+    model.add(Embedding(params['vocab_size'], params['embedding_dim'], input_length=params['max_answer_len']))
+    model.add(Dropout(params['dropout']))
+    if params['flatten']:
+        model.add(Flatten())
+        model.add(Reshape((1, params['embedding_dim'] * params['max_answer_len'])))
+    if params['lstm_dim_2']:
+        model.add(LSTM(params['lstm_dim_1'], return_sequences=True))
+        model.add(LSTM(params['lstm_dim_2'], return_sequences=False))
+    else:
+        model.add(LSTM(params['lstm_dim_1'], return_sequences=False))
+    model.add(Dropout(params['dropout']))
+    model.add(Dense(1, activation="linear"))
+
+    # compile the model
+    optimizer = AdamOptimizer()
+    model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['acc'])
+    print(model.summary())
+    return model
+
+def fit_model(model, model_dir, epochs, X_train, y_train):
+    # evaluate the model
+    print(f"test_answers shape: {X_train.shape}")
+    loss, accuracy = model.evaluate(X_train, y_train, verbose=0)
+    print('Accuracy: %f' % (accuracy * 100))
+    print('Loss: %f' % loss)
+
+    # evaluate the model
+    print(f"test_answers shape: {X_train.shape}")
+    loss, accuracy = model.evaluate(X_train, y_train, verbose=0)
+    print('Accuracy: %f' % (accuracy*100))
+    print('Loss: %f' % loss)
+
+    # fit the model
+    model.fit(X_train, y_train, epochs=epochs, verbose=1) #, validation_data=(X_test, y_test))
+    save_keras_model(model, model_dir)
+
+    return model
+
+def load_model(model_dir):
+    return load_keras_model(model_dir)
+
+def train_and_test(model_dir, model_file, model_params, X_train, y_train, X_test, y_test, train=False):
+
+    if train:
+        # Build Model
+        model = build_model(model_params)
+        fit_model(model, model_dir, model_params['epochs'], X_train, y_train)
+    else:
+        # Load existing model
+        filename = f"{model_dir}/{model_file}"
+        model = load_model(filename)
+        print(model.summary())
+
+    evaluate(model, X_test, y_test)
+
+    print('Predict on all data')
+    X_data = np.append(X_train, X_test, axis=0)
+    y_data = np.append(y_train, y_test, axis=0)
+    evaluate(model, X_data, y_data)
+
+    return model
 
 def evaluate(predictor, test_features, test_labels, verbose=True):
     """
@@ -49,7 +215,10 @@ def evaluate(predictor, test_features, test_labels, verbose=True):
 
     # rounding and squeezing array
     test_preds = np.squeeze(predictor.predict(test_features))
-    print(f"Min preds: {min(test_preds)} max_preds: {max(test_preds)}")
+    min_pred = min(test_preds)
+    max_pred = max(test_preds)
+    print(f"Min preds: {min_pred} max_preds: {max_pred}")
+    test_preds = (test_preds - min_pred)/(max_pred - min_pred)
     test_preds = np.round(test_preds)
 
     # calculate true positives, false positives, true negatives, false negatives
