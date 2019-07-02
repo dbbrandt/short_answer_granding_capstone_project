@@ -94,7 +94,7 @@ def load_seb_data():
 
     return X_train, y_train, X_test, y_test, max_length, from_num_vocab
 
-def load_sag_data(percent_of_data):
+def load_sag_data(percent_of_data=1):
     filename = 'data/sag2/answers.csv'
     # filename = 'data/sag2/balanced_answers.csv'
 
@@ -121,7 +121,7 @@ def load_sag_data(percent_of_data):
     labels_df = pd.DataFrame(y_train)
     answers_df = pd.DataFrame(X_train)
     test_data = pd.concat([labels_df, answers_df], axis=1)
-    test_data.to_csv('data/sag2/train.csv', index=False)
+    test_data.to_csv('data/sag2/train.csv', index=False, header=False)
     train_x = test_data.iloc[:, 1:]
     max_length = train_x.values.shape[1]
     print(f"Test Data columns: {max_length}")
@@ -180,6 +180,10 @@ def fit_model(model, model_dir, epochs, X_train, y_train):
 
 def load_model(model_dir):
     return load_keras_model(model_dir)
+
+
+def save_model(model, model_dir):
+    save_keras_model(model, model_dir)
 
 def train_and_test(model_dir, model_file, model_params, X_train, y_train, X_test, y_test, train=False):
 
