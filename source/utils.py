@@ -42,6 +42,79 @@ def read_xml_qanda(filename):
     answers_df['reference_answer'] = reference_answer
     return answers_df
 
+def simplified_answer(answer):
+    # nltk.download("stopwords", quiet=True)
+
+    text = BeautifulSoup(answer, "html.parser").get_text()  # Remove HTML tags
+    text = re.sub(r"[^a-zA-Z0-9\-]", " ", text.lower())  # Convert to lower case
+    words = text.split()  # Split string into words
+    # words = [w for w in words if w not in stopwords.words("english")]  # Remove stopwords
+    words = [PorterStemmer().stem(w) for w in words]  # stem
+
+    return ' '.join(words)
+
+def id_map():
+    ids = pd.read_csv(question_id_file, dtype={'id': str})['id'].values
+    id_to_num = {id: i for i, id in enumerate(ids)}
+    return id_to_num
+
+def encode_answers(raw_answers, category_col=None, question_id=[]):
+    answers = [simplified_answer(answer) for answer in raw_answers]
+    # answers = raw_answers
+    vocab_string = " ".join(answers)
+    vocab_list = vocab_string.split()
+    vocabulary = sorted(list(dict.fromkeys(vocab_list)))
+    to_num_dict = {word: i for i, word in enumerate(vocabulary)}
+    from_num_dict = {i: word for i, word in enumerate(vocabulary)}
+
+    id_to_num = id_map() if category_col else []
+
+    encoded_answers = []
+    for index, answer in enumerate(answers):
+        arr = [float(id_to_num[question_id[index]])] if category_col else []
+        for word in answer.split(' '):
+            arr.append(to_num_dict[word])
+        encoded_answers.append(arr)
+
+    max_length = max([len(answer) for answer in encoded_answers])
+    padded_answers = pad_sequences(encoded_answers, maxlen=max_length, padding='post').tolist()
+    padded_answers = np.array(padded_answers).astype('float')
+    return max_length, padded_answers, from_num_dict, to_num_dict
+
+def decode_answers(encoded_answers, from_num_dict):
+
+    decoded_answers = []
+    for index, answer in enumerate(encoded_answers):
+        arr = [index, answer[0]]
+        for i, word in enumerate(answer):
+            if i > 0 and word != 0:
+                arr.append(from_num_dict[word])
+        decoded_answers.append(arr)
+    return decoded_answers
+
+
+# Note: Adding in the question_id may help the learning to group relationsips better by the question..
+# This needs to be validated. It can't hurt.
+def generate_data(answer_df, subset=1, question_id=None):
+
+    if question_id:
+         max_length, encoded_answers, from_num_dict, to_num_dict = encode_answers(answer_df[answer_col].values,
+                                                                                  question_id, answer_df['id'])
+    else:
+         max_length, encoded_answers, from_num_dict, to_num_dict = encode_answers(answer_df[answer_col].values)
+
+    encoded_answer_df = pd.DataFrame(encoded_answers)
+    encoded_answer_df[predictor_col] = answer_df[predictor_col].astype(float)
+
+    # randomize data
+    randomized_data = encoded_answer_df.reindex(np.random.permutation(encoded_answer_df.index))
+    max = int(len(randomized_data) * subset)
+    randomized_labels = randomized_data[predictor_col].values[:max]
+    randomized_answers = randomized_data.drop([predictor_col], axis=1).values[:max]
+
+    return randomized_answers, randomized_labels, max_length, from_num_dict, to_num_dict
+
+
 def load_seb_data():
     filenames = {'em': 'data/sciEntsBank/EM-post-35.xml',
                  'me': 'data/sciEntsBank/ME-inv1-28b.xml',
@@ -247,72 +320,4 @@ def evaluate(predictor, test_features, test_labels, verbose=True):
     return {'TP': tp, 'FP': fp, 'FN': fn, 'TN': tn,
             'Precision': precision, 'Recall': recall, 'Accuracy': accuracy}
 
-def simplified_answer(answer):
-    # nltk.download("stopwords", quiet=True)
-
-    text = BeautifulSoup(answer, "html.parser").get_text()  # Remove HTML tags
-    text = re.sub(r"[^a-zA-Z0-9\-]", " ", text.lower())  # Convert to lower case
-    words = text.split()  # Split string into words
-    # words = [w for w in words if w not in stopwords.words("english")]  # Remove stopwords
-    words = [PorterStemmer().stem(w) for w in words]  # stem
-
-    return ' '.join(words)
-
-def id_map():
-    ids = pd.read_csv(question_id_file, dtype={'id': str})['id'].values
-    id_to_num = {id: i for i, id in enumerate(ids)}
-    return id_to_num
-
-def encode_answers(raw_answers, category_col=None, category_data=[]):
-    answers = [simplified_answer(answer) for answer in raw_answers]
-    # answers = raw_answers
-    vocab_string = " ".join(answers)
-    vocab_list = vocab_string.split()
-    vocabulary = sorted(list(dict.fromkeys(vocab_list)))
-    to_num_dict = {word: i for i, word in enumerate(vocabulary)}
-    from_num_dict = {i: word for i, word in enumerate(vocabulary)}
-
-    id_to_num = id_map() if category_col else []
-
-    encoded_answers = []
-    for index, answer in enumerate(answers):
-        arr = [float(id_to_num[category_data[index]])] if category_col else []
-        for word in answer.split(' '):
-            arr.append(to_num_dict[word])
-        encoded_answers.append(arr)
-
-    max_length = max([len(answer) for answer in encoded_answers])
-    padded_answers = pad_sequences(encoded_answers, maxlen=max_length, padding='post').tolist()
-    padded_answers = np.array(padded_answers).astype('float')
-    return max_length, padded_answers, from_num_dict, to_num_dict
-
-def decode_answers(encoded_answers, from_num_dict):
-
-    decoded_answers = []
-    for index, answer in enumerate(encoded_answers):
-        arr = [index, answer[0]]
-        for i, word in enumerate(answer):
-            if i > 0 and word != 0:
-                arr.append(from_num_dict[word])
-        decoded_answers.append(arr)
-    return decoded_answers
-
-def generate_data(answer_df, subset=1, category_col=None):
-
-    if category_col:
-         max_length, encoded_answers, from_num_dict, to_num_dict = encode_answers(answer_df[answer_col].values,
-                                                                             category_col, answer_df['id'])
-    else:
-        max_length, encoded_answers, from_num_dict, to_num_dict = encode_answers(answer_df[answer_col].values)
-
-    encoded_answer_df = pd.DataFrame(encoded_answers)
-    encoded_answer_df[predictor_col] = answer_df[predictor_col].astype(float)
-
-    # randomize data
-    randomized_data = encoded_answer_df.reindex(np.random.permutation(encoded_answer_df.index))
-    max = int(len(randomized_data) * subset)
-    randomized_labels = randomized_data[predictor_col].values[:max]
-    randomized_answers = randomized_data.drop([predictor_col], axis=1).values[:max]
-
-    return randomized_answers, randomized_labels, max_length, from_num_dict, to_num_dict
 
