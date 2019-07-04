@@ -7,7 +7,7 @@ def build_model(model_params):
                           objective=model_params['objective'],
                           subsample=0.8,
                           min_child_weight=6,
-                          n_estimators=10000,
+                          n_estimators=1000,
                           max_depth=4,
                           gamma=1,
                           verbosity=0)

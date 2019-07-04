@@ -36,10 +36,10 @@ def main():
 
     print(model)
     eval = evaluate(model, X_test, y_test)
-    results_df = decode_predictions(X_test, y_test, vocabulary, eval['Predictions'], questions_file)
+#    results_df = decode_predictions(X_test, y_test, vocabulary, eval['Predictions'], questions_file)
 
-    incorrect = results_df[results_df['correct'] != results_df['prediction']]
-    print(incorrect)
+#    incorrect = results_df[results_df['correct'] != results_df['prediction']]
+#    print(incorrect)
 
 main()
 

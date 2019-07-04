@@ -206,7 +206,7 @@ def load_sag_data(percent_of_data=1, ngrams=False):
     answer_df = pd.read_csv(filename, dtype={'id': str})
 
     id_to_num = str_id_map(sag_question_id_file)
-    answer_df['id'] = answer_df['id'].apply(lambda a: id_to_num(a))
+    answer_df['id'] = answer_df['id'].apply(lambda a: id_to_num[a])
 
     print(answer_df)
 
