@@ -89,7 +89,7 @@ def decode_answers(encoded_answers, from_num_dict):
 
     decoded_answers = []
     for index, answer in enumerate(encoded_answers):
-        arr = [index]
+        arr = [answer[0]]
         for i, word in enumerate(answer):
             if i > 0 and word != 0:
                 arr.append(from_num_dict[word])
@@ -97,16 +97,17 @@ def decode_answers(encoded_answers, from_num_dict):
         decoded_answers.append(arr)
     return decoded_answers
 
-def decode_predictions(X_test, y_test, from_num_dict, prediction, questions_file):
-    questions = pd.read_csv(questions_file)
-    decoded = decode_answers(X_test, from_num_dict)
-    incorrect = []
+def decode_predictions(X_test, y_test, vocabulary, prediction, questions_file):
+    questions = pd.read_csv(questions_file, index_col=0)
+    decoded = decode_answers(X_test, vocabulary)
+    results = []
     for index, answer in enumerate(decoded):
+        answer_text = ' '.join(answer[1:])
         correct = y_test[index]
-        correct_answer = questions[answer.id]
+        correct_answer = questions.iloc[int(answer[0])].question
         pred = prediction[index]
-        incorrect.append([index, answer, correct_answer, correct, pred])
-    return pd.DataFrame(incorrect, columns=['index', 'answer', 'correct_answer', 'correct', 'prediction'])
+        results.append([index, answer_text, correct_answer, correct, pred])
+    return pd.DataFrame(results, columns=['index', 'answer', 'correct_answer', 'correct', 'prediction'])
 
 
 # Note: Adding in the question_id may help the learning to group relationsips better by the question..

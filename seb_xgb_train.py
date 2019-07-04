@@ -7,7 +7,7 @@ def build_model(model_params):
                           objective=model_params['objective'],
                           subsample=0.8,
                           min_child_weight=6,
-                          n_estimators=100,
+                          n_estimators=10000,
                           max_depth=4,
                           gamma=1,
                           verbosity=0)
@@ -38,8 +38,8 @@ def main():
     eval = evaluate(model, X_test, y_test)
     results_df = decode_predictions(X_test, y_test, vocabulary, eval['Predictions'], questions_file)
 
-    #incorrect = results_df[results_df['correct'] != results_df['prediction']]
-    #print(incorrect)
+    incorrect = results_df[results_df['correct'] != results_df['prediction']]
+    print(incorrect)
 
 main()
 
