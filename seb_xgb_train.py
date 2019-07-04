@@ -1,4 +1,4 @@
-from source.utils import load_xgb_model, save_xgb_model, load_seb_data, evaluate, decode_predictions
+from source.utils import load_xgb_model, save_xgb_model, load_seb_data, evaluate, decode_predictions, print_results
 from xgboost import XGBClassifier
 
 def build_model(model_params):
@@ -37,18 +37,7 @@ def main():
     print(model)
     eval = evaluate(model, X_test, y_test)
     results_df = decode_predictions(X_test, y_test, vocabulary, eval['Predictions'], questions_file)
-
-    incorrect = results_df[results_df['correct'] != results_df['prediction']]
-    print("Incorrect Predictions")
-    print("id, prediction, correct, answer, correct_answer")
-    for index, row in incorrect.iterrows():
-        print(f'{row.id}, {row.prediction}, "{row.correct}", "{row.answer}", "{row.correct_answer}"')
-
-    correct = results_df[results_df['correct'] == results_df['prediction']]
-    print("Correct Predictions")
-    print("id, prediction, correct, answer, correct_answer")
-    for index, row in correct.iterrows():
-        print(f'{row.id}, {row.prediction}, "{row.correct}", "{row.answer}", "{row.correct_answer}"')
+    print_results(results_df)
 
 main()
 
