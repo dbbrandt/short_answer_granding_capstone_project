@@ -3,7 +3,7 @@ from source.utils import train_and_test, load_sag_data
 def main():
     model_dir = 'model/sag'
     model_file = '20pct'  # used to load existing model if train is false
-    train = True
+    train = False
     data_percentage = 0.2
 
     X_train, y_train, X_test, y_test, max_answer_len, vocabulary = load_sag_data(data_percentage)
