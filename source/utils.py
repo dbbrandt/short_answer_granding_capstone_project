@@ -14,17 +14,18 @@ from tensorflow.python.keras import Sequential
 from tensorflow.python.keras.layers import Dense, Embedding, Dropout, LSTM, Flatten, Reshape
 from tensorflow.python.training.adam import AdamOptimizer
 from tensorflow.contrib.saved_model import save_keras_model, load_keras_model
+import joblib
 
 answer_col = 'answer'
 predictor_col = 'correct'
-question_id_file = 'data/sag2/files'
+sag_question_id_file = 'data/sag2/files'
 
 def get_xml_elements(doc, tag):
     elements = doc.getElementsByTagName(tag)
     values = [e.firstChild for e in elements]
     return values, elements
 
-def read_xml_qanda(filename):
+def read_xml_qanda(filename, id):
     doc = minidom.parse(filename)
     values, elements = get_xml_elements(doc, 'questionText')
     question = values[0].data
@@ -40,7 +41,8 @@ def read_xml_qanda(filename):
     answers_df = pd.DataFrame(answers, columns=['answer','correct'])
     answers_df['question'] = question
     answers_df['reference_answer'] = reference_answer
-    return answers_df
+    answers_df['id'] = id
+    return answers_df, question
 
 def simplified_answer(answer):
     # nltk.download("stopwords", quiet=True)
@@ -53,25 +55,27 @@ def simplified_answer(answer):
 
     return ' '.join(words)
 
-def id_map():
-    ids = pd.read_csv(question_id_file, dtype={'id': str})['id'].values
+def str_id_map(filename):
+    ids = pd.read_csv(filename, dtype={'id': str})['id'].values
     id_to_num = {id: i for i, id in enumerate(ids)}
     return id_to_num
 
-def encode_answers(raw_answers, category_col=None, question_id=[]):
-    answers = [simplified_answer(answer) for answer in raw_answers]
-    # answers = raw_answers
+def encode_answers(answer_df, category_col=None, question_id=[], ngrams=False):
+    answers = [simplified_answer(answer) for answer in answer_df[answer_col].values]
     vocab_string = " ".join(answers)
     vocab_list = vocab_string.split()
     vocabulary = sorted(list(dict.fromkeys(vocab_list)))
     to_num_dict = {word: i for i, word in enumerate(vocabulary)}
     from_num_dict = {i: word for i, word in enumerate(vocabulary)}
 
-    id_to_num = id_map() if category_col else []
-
     encoded_answers = []
     for index, answer in enumerate(answers):
-        arr = [float(id_to_num[question_id[index]])] if category_col else []
+        arr = [question_id[index]] if category_col else []
+
+        if ngrams:
+            ng = list(answer_df.iloc[index][['ng1', 'ng2']].values)
+            arr += ng
+
         for word in answer.split(' '):
             arr.append(to_num_dict[word])
         encoded_answers.append(arr)
@@ -85,37 +89,53 @@ def decode_answers(encoded_answers, from_num_dict):
 
     decoded_answers = []
     for index, answer in enumerate(encoded_answers):
-        arr = [index, answer[0]]
+        arr = [index]
         for i, word in enumerate(answer):
             if i > 0 and word != 0:
                 arr.append(from_num_dict[word])
+
         decoded_answers.append(arr)
     return decoded_answers
+
+def decode_predictions(X_test, y_test, from_num_dict, prediction, questions_file):
+    questions = pd.read_csv(questions_file)
+    decoded = decode_answers(X_test, from_num_dict)
+    incorrect = []
+    for index, answer in enumerate(decoded):
+        correct = y_test[index]
+        correct_answer = questions[answer.id]
+        pred = prediction[index]
+        incorrect.append([index, answer, correct_answer, correct, pred])
+    return pd.DataFrame(incorrect, columns=['index', 'answer', 'correct_answer', 'correct', 'prediction'])
 
 
 # Note: Adding in the question_id may help the learning to group relationsips better by the question..
 # This needs to be validated. It can't hurt.
-def generate_data(answer_df, subset=1, question_id=None):
+# Sample_size allow a franction of the data to be used for testing.
+# Question_id is the columname of the field to use to identify the question
+# Ngrams determines if we should append ngrams to the encoded data.
+def generate_data(answer_df, sample_size=1, question_id=None, ngrams=False):
 
     if question_id:
-         max_length, encoded_answers, from_num_dict, to_num_dict = encode_answers(answer_df[answer_col].values,
-                                                                                  question_id, answer_df['id'])
+         max_length, encoded_answers, from_num_dict, to_num_dict = encode_answers(answer_df, question_id,
+                                                                                  answer_df[question_id], ngrams)
     else:
-         max_length, encoded_answers, from_num_dict, to_num_dict = encode_answers(answer_df[answer_col].values)
+         max_length, encoded_answers, from_num_dict, to_num_dict = encode_answers(answer_df, question_id,
+                                                                                  answer_df[question_id])
 
     encoded_answer_df = pd.DataFrame(encoded_answers)
     encoded_answer_df[predictor_col] = answer_df[predictor_col].astype(float)
 
     # randomize data
     randomized_data = encoded_answer_df.reindex(np.random.permutation(encoded_answer_df.index))
-    max = int(len(randomized_data) * subset)
+    max = int(len(randomized_data) * sample_size)
     randomized_labels = randomized_data[predictor_col].values[:max]
     randomized_answers = randomized_data.drop([predictor_col], axis=1).values[:max]
 
     return randomized_answers, randomized_labels, max_length, from_num_dict, to_num_dict
 
 
-def load_seb_data():
+def load_seb_data(sample_size=1):
     filenames = {'em': 'data/sciEntsBank/EM-post-35.xml',
                  'me': 'data/sciEntsBank/ME-inv1-28b.xml',
                  'mx': 'data/sciEntsBank/MX-inv1-22a.xml',
@@ -126,15 +146,20 @@ def load_seb_data():
     set_random_seed(72) # Tensorflow
 
     # question, reference_answer, answer_df = read_xml_qanda(filenames['ps'])
+    questions = []
     answer_df = pd.DataFrame()
-    for filename in filenames.values():
-        answers = read_xml_qanda(filename)
+    for index, filename in enumerate(filenames.values()):
+        answers, question = read_xml_qanda(filename, str(index))
         answer_df = pd.concat([answer_df, answers], axis=0, ignore_index=True)
+        questions.append(question)
 
     print(answer_df)
-    answer_df.to_csv('data/seb/raw_data.csv', index=False)
+    answer_df.to_csv('data/seb/answers.csv', index=False)
 
-    data_answers, data_labels, max_length, from_num_vocab, to_num_vocab = generate_data(answer_df)
+    questions_df = pd.DataFrame(questions, columns=['question'])
+    questions_df.to_csv('data/seb/questions.csv')
+
+    data_answers, data_labels, max_length, from_num_vocab, to_num_vocab = generate_data(answer_df, sample_size, 'id')
 
     print(data_answers)
     print(f"Sample Size: {len(data_answers)}")
@@ -167,18 +192,25 @@ def load_seb_data():
 
     return X_train, y_train, X_test, y_test, max_length, from_num_vocab
 
-def load_sag_data(percent_of_data=1):
-    filename = 'data/sag2/answers.csv'
-    # filename = 'data/sag2/balanced_answers.csv'
+def load_sag_data(percent_of_data=1, ngrams=False):
+    if ngrams:
+        filename = 'data/sag2/answers_ngrams.csv'
+    else:
+        filename = 'data/sag2/answers.csv'
+        # filename = 'data/sag2/balanced_answers.csv'
 
     seed(72) # Python
     set_random_seed(72) # Tensorflow
 
     answer_df = pd.read_csv(filename, dtype={'id': str})
 
+    id_to_num = str_id_map(sag_question_id_file)
+    answer_df['id'] = answer_df['id'].apply(lambda a: id_to_num(a))
+
     print(answer_df)
 
-    data_answers, data_labels, max_length, from_num_dict, to_num_dict = generate_data(answer_df, percent_of_data, 'id')
+    data_answers, data_labels, max_length, from_num_dict, to_num_dict = generate_data(answer_df, percent_of_data,
+                                                                                      'id', ngrams)
 
     print(data_answers)
     print(f"Sample Size: {len(data_answers)}")
@@ -251,12 +283,19 @@ def fit_model(model, model_dir, epochs, X_train, y_train):
 
     return model
 
+# Saving Keras Tensorflow models uses provided load and save
 def load_model(model_dir):
     return load_keras_model(model_dir)
 
-
 def save_model(model, model_dir):
     save_keras_model(model, model_dir)
+
+# Saving XGB models uses joblib
+def load_xgb_model(filename):
+    return joblib.load(filename + '.xgb')
+
+def save_xgb_model(model, filename):
+    joblib.dump(model, filename)
 
 def train_and_test(model_dir, model_file, model_params, X_train, y_train, X_test, y_test, train=False):
 
@@ -318,6 +357,6 @@ def evaluate(predictor, test_features, test_labels, verbose=True):
         print()
 
     return {'TP': tp, 'FP': fp, 'FN': fn, 'TN': tn,
-            'Precision': precision, 'Recall': recall, 'Accuracy': accuracy}
+            'Precision': precision, 'Recall': recall, 'Accuracy': accuracy, 'Predictions': test_preds}
 
 

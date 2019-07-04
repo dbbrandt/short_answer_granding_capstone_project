@@ -1,4 +1,4 @@
-from source.utils import load_model, save_model, load_seb_data, evaluate
+from source.utils import load_xgb_model, save_xgb_model, load_seb_data, evaluate, decode_predictions
 from xgboost import XGBClassifier
 
 def build_model(model_params):
@@ -7,7 +7,7 @@ def build_model(model_params):
                           objective=model_params['objective'],
                           subsample=0.8,
                           min_child_weight=6,
-                          n_estimators=1000,
+                          n_estimators=100,
                           max_depth=4,
                           gamma=1,
                           verbosity=0)
@@ -15,28 +15,31 @@ def build_model(model_params):
     return model
 
 def main():
-    model_dir = 'model/seb'
-    model_file = 'xgboost'
+    model_file = 'model/seb/xgboost/baseline'
+    questions_file = 'data/seb/questions.csv'
     train = True
 
     X_train, y_train, X_test, y_test, max_answer_len, vocabulary = load_seb_data()
 
-    #model_params = {'objective': 'binary:logistic'}
+    model_params = {'objective': 'binary:logistic'}
     #model_params = {'objective': 'reg:squarederror'}
-    model_params = {'objective': 'binary:hinge'}
+    #model_params = {'objective': 'binary:hinge'}
     if train:
         # Build Model
         model = build_model(model_params)
         model.fit(X_train, y_train)
-#        save_model(model, model_dir)
+        save_xgb_model(model, model_file)
     else:
         # Load existing model
-        filename = f"{model_dir}/{model_file}"
-        model = load_model(filename)
-        # print(model.summary())
+        model = load_xgb_model(model_file)
+        print(model)
 
     print(model)
-    evaluate(model, X_test, y_test)
+    eval = evaluate(model, X_test, y_test)
+    results_df = decode_predictions(X_test, y_test, vocabulary, eval['Predictions'], questions_file)
+
+    #incorrect = results_df[results_df['correct'] != results_df['prediction']]
+    #print(incorrect)
 
 main()
 
