@@ -28,7 +28,7 @@ def get_xml_elements(doc, tag):
 def read_xml_qanda(filename, id):
     doc = minidom.parse(filename)
     values, elements = get_xml_elements(doc, 'questionText')
-    question = values[0].data
+    question_text = values[0].data
     values, elements = get_xml_elements(doc, 'referenceAnswer')
     reference_answer = values[0].data
     # print(question)
@@ -39,10 +39,10 @@ def read_xml_qanda(filename, id):
         correct = 1 if e.getAttribute('accuracy') == 'correct' else 0
         answers.append([e.firstChild.data, correct])
     answers_df = pd.DataFrame(answers, columns=['answer','correct'])
-    answers_df['question'] = question
+    answers_df['question'] = question_text
     answers_df['reference_answer'] = reference_answer
     answers_df['id'] = id
-    return answers_df, question
+    return answers_df, [question_text, reference_answer]
 
 def simplified_answer(answer):
     # nltk.download("stopwords", quiet=True)
@@ -104,10 +104,10 @@ def decode_predictions(X_test, y_test, vocabulary, prediction, questions_file):
     for index, answer in enumerate(decoded):
         answer_text = ' '.join(answer[1:])
         correct = y_test[index]
-        correct_answer = questions.iloc[int(answer[0])].question
+        correct_answer = questions.iloc[int(answer[0])].answer
         pred = prediction[index]
         results.append([index, answer_text, correct_answer, correct, pred])
-    return pd.DataFrame(results, columns=['index', 'answer', 'correct_answer', 'correct', 'prediction'])
+    return pd.DataFrame(results, columns=['id', 'answer', 'correct_answer', 'correct', 'prediction'])
 
 
 # Note: Adding in the question_id may help the learning to group relationsips better by the question..
@@ -157,7 +157,7 @@ def load_seb_data(sample_size=1):
     print(answer_df)
     answer_df.to_csv('data/seb/answers.csv', index=False)
 
-    questions_df = pd.DataFrame(questions, columns=['question'])
+    questions_df = pd.DataFrame(questions, columns=['question','answer'])
     questions_df.to_csv('data/seb/questions.csv')
 
     data_answers, data_labels, max_length, from_num_vocab, to_num_vocab = generate_data(answer_df, sample_size, 'id')
@@ -206,7 +206,7 @@ def load_sag_data(percent_of_data=1, ngrams=False):
     answer_df = pd.read_csv(filename, dtype={'id': str})
 
     id_to_num = str_id_map(sag_question_id_file)
-    answer_df['id'] = answer_df['id'].apply(lambda a: id_to_num(a))
+    answer_df['id'] = answer_df['id'].apply(lambda a: id_to_num[a])
 
     print(answer_df)
 
@@ -298,7 +298,8 @@ def load_xgb_model(filename):
 def save_xgb_model(model, filename):
     joblib.dump(model, filename)
 
-def train_and_test(model_dir, model_file, model_params, X_train, y_train, X_test, y_test, train=False):
+def train_and_test(model_dir, model_file, model_params, X_train, y_train, X_test, y_test,
+                   vocabulary, questions_file, train=False):
 
     if train:
         # Build Model
@@ -310,12 +311,10 @@ def train_and_test(model_dir, model_file, model_params, X_train, y_train, X_test
         model = load_model(filename)
         print(model.summary())
 
-    evaluate(model, X_test, y_test)
+    eval = evaluate(model, X_test, y_test)
 
-    print('Predict on all data')
-    X_data = np.append(X_train, X_test, axis=0)
-    y_data = np.append(y_train, y_test, axis=0)
-    evaluate(model, X_data, y_data)
+    results_df = decode_predictions(X_test, y_test, vocabulary, eval['Predictions'], questions_file)
+    print_results(results_df)
 
     return model
 
@@ -360,4 +359,16 @@ def evaluate(predictor, test_features, test_labels, verbose=True):
     return {'TP': tp, 'FP': fp, 'FN': fn, 'TN': tn,
             'Precision': precision, 'Recall': recall, 'Accuracy': accuracy, 'Predictions': test_preds}
 
+def print_results(results_df):
 
+    incorrect = results_df[results_df['correct'] != results_df['prediction']]
+    print("Incorrect Predictions")
+    print("id, prediction, correct, answer, correct_answer")
+    for index, row in incorrect.iterrows():
+        print(f'{row.id}, {row.prediction}, "{row.correct}", "{row.answer}", "{row.correct_answer}"')
+
+    correct = results_df[results_df['correct'] == results_df['prediction']]
+    print("Correct Predictions")
+    print("id, prediction, correct, answer, correct_answer")
+    for index, row in correct.iterrows():
+        print(f'{row.id}, {row.prediction}, "{row.correct}", "{row.answer}", "{row.correct_answer}"')
