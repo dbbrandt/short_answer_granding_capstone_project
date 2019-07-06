@@ -5,13 +5,16 @@ def main():
     model_file = '20pct'  # used to load existing model if train is false
     questions_file = 'data/sag2/questions.csv'
     train = True
+    # Pretrained embeddings
+    pretrained = True
     data_percentage = 1
 
-    X_train, y_train, X_test, y_test, max_answer_len, vocabulary = load_sag_data(data_percentage)
+    X_train, y_train, X_test, y_test, max_answer_len, vocabulary = load_sag_data(pretrained, data_percentage)
 
     model_params = {'max_answer_len': max_answer_len,
                     'vocab_size': len(vocabulary),
                     'epochs': 30,
+                    'pretrained': True,
                     'embedding_dim': 50,
                     'flatten': True,
                     'lstm_dim_1': 100,

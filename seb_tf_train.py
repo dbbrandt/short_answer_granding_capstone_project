@@ -4,13 +4,15 @@ def main():
     model_dir = 'model/seb'
     model_file = 'baseline'
     questions_file = f"data/seb/questions.csv"
-    train = False
+    train = True
+    pretrained = True
 
-    X_train, y_train, X_test, y_test, max_answer_len, vocabulary = load_seb_data()
+    X_train, y_train, X_test, y_test, max_answer_len, vocabulary = load_seb_data(pretrained)
 
     model_params = {'max_answer_len': max_answer_len,
                     'vocab_size': len(vocabulary),
                     'epochs': 200,
+                    'pretrained': pretrained,
                     'embedding_dim': 50,
                     'flatten': False,
                     'lstm_dim_1': 100,
@@ -292,7 +294,7 @@ main()
 
 # Showing results of test
 # _________________________________________________________________
-_________________________________________________________________
+# _________________________________________________________________
 # Layer (type)                 Output Shape              Param #
 # =================================================================
 # embedding (Embedding)        (None, 48, 50)            11700

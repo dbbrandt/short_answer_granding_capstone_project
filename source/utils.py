@@ -16,6 +16,8 @@ from tensorflow.python.training.adam import AdamOptimizer
 from tensorflow.contrib.saved_model import save_keras_model, load_keras_model
 import joblib
 
+from source.glove import Glove
+
 answer_col = 'answer'
 predictor_col = 'correct'
 sag_question_id_file = 'data/sag2/files'
@@ -60,39 +62,67 @@ def str_id_map(filename):
     id_to_num = {id: i for i, id in enumerate(ids)}
     return id_to_num
 
-def encode_answers(answer_df, category_col=None, question_id=[], ngrams=False):
-    answers = [simplified_answer(answer) for answer in answer_df[answer_col].values]
+def encode_answers(answer_df, pretrained=False, category_col=None, question_id=[]):
+    #answers = [simplified_answer(answer) for answer in answer_df[answer_col].values]
+    answers = [answer for answer in answer_df[answer_col].values]
     vocab_string = " ".join(answers)
-    vocab_list = vocab_string.split()
-    vocabulary = sorted(list(dict.fromkeys(vocab_list)))
-    to_num_dict = {word: i for i, word in enumerate(vocabulary)}
-    from_num_dict = {i: word for i, word in enumerate(vocabulary)}
+    word_list = vocab_string.split()
+    vocab_list = sorted(list(dict.fromkeys(word_list)))
+    #vocabulary = {i: word for i, word in enumerate(vocabulary)}
 
+    if pretrained:
+        encoded_answers, vocabulary = pretrained_embeddings(answers, vocab_list, category_col=None, question_id=[])
+    else:
+        to_encoded = {word: i for i, word in enumerate(vocab_list)}
+        vocabulary = {i: word for i, word in enumerate(vocab_list)}
+        encoded_answers = encoded(answers, to_encoded, question_id, category_col)
+
+    max_length = max([len(answer) for answer in encoded_answers])
+    padded_answers = pad_sequences(encoded_answers, maxlen=max_length, dtype='float', padding='post').tolist()
+    padded_answers = np.array(padded_answers)
+    return max_length, padded_answers, vocabulary
+
+def encoded(answers, to_encoded, question_id, category_col):
     encoded_answers = []
     for index, answer in enumerate(answers):
         arr = [question_id[index]] if category_col else []
 
-        if ngrams:
-            ng = list(answer_df.iloc[index][['ng1', 'ng2']].values)
-            arr += ng
-
         for word in answer.split(' '):
-            arr.append(to_num_dict[word])
+            arr.append(to_encoded[word])
         encoded_answers.append(arr)
+    return encoded_answers
 
-    max_length = max([len(answer) for answer in encoded_answers])
-    padded_answers = pad_sequences(encoded_answers, maxlen=max_length, padding='post').tolist()
-    padded_answers = np.array(padded_answers).astype('float')
-    return max_length, padded_answers, from_num_dict, to_num_dict
+def pretrained_embeddings(answers, vocabulary, category_col=None, question_id=[]):
+    glove = Glove(True)
+    word2index = glove.word2index
 
-def decode_answers(encoded_answers, from_num_dict):
+    encoded_answers = []
+    from_encoded = {}
+    for index, answer in enumerate(answers):
+        arr = [question_id[index]] if category_col else []
+        for word in answer.split(' '):
+            if word in word2index:
+                i = word2index[word]
+                from_encoded[i] = word
+                arr.append(i)
+            else:
+                print(f"ERROR! Word: {word} not found in dictionary")
+
+        encoded_answers.append(arr)
+    return encoded_answers, from_encoded
+
+def decode_answers(encoded_answers, from_encoded, pretrained=False):
 
     decoded_answers = []
     for index, answer in enumerate(encoded_answers):
         arr = [answer[0]]
         for i, word in enumerate(answer):
             if i > 0 and word != 0:
-                arr.append(from_num_dict[word])
+                if pretrained:
+                    hash = Glove(word)
+                    arr.append(from_encoded[hash])
+                else:
+                    arr.append(from_encoded[word])
 
         decoded_answers.append(arr)
     return decoded_answers
@@ -110,18 +140,13 @@ def decode_predictions(X_test, y_test, vocabulary, prediction, questions_file):
     return pd.DataFrame(results, columns=['id', 'answer', 'correct_answer', 'correct', 'prediction'])
 
 
-# Note: Adding in the question_id may help the learning to group relationsips better by the question..
-# This needs to be validated. It can't hurt.
-# Sample_size allow a franction of the data to be used for testing.
-# Question_id is the columname of the field to use to identify the question
-# Ngrams determines if we should append ngrams to the encoded data.
-def generate_data(answer_df, sample_size=1, question_id=None, ngrams=False):
+def generate_data(answer_df, pretrained=False, sample_size=1, question_id=None):
 
     if question_id:
-         max_length, encoded_answers, from_num_dict, to_num_dict = encode_answers(answer_df, question_id,
-                                                                                  answer_df[question_id], ngrams)
+         max_length, encoded_answers, from_encoded = encode_answers(answer_df, pretrained, question_id,
+                                                                                  answer_df[question_id])
     else:
-         max_length, encoded_answers, from_num_dict, to_num_dict = encode_answers(answer_df, question_id,
+         max_length, encoded_answers, from_encoded = encode_answers(answer_df, pretrained, question_id,
                                                                                   answer_df[question_id])
 
     encoded_answer_df = pd.DataFrame(encoded_answers)
@@ -133,10 +158,10 @@ def generate_data(answer_df, sample_size=1, question_id=None, ngrams=False):
     randomized_labels = randomized_data[predictor_col].values[:max]
     randomized_answers = randomized_data.drop([predictor_col], axis=1).values[:max]
 
-    return randomized_answers, randomized_labels, max_length, from_num_dict, to_num_dict
+    return randomized_answers, randomized_labels, max_length, from_encoded
 
 
-def load_seb_data(sample_size=1):
+def load_seb_data(pretrained=False, sample_size=1, verbose=False):
     filenames = {'em': 'data/sciEntsBank/EM-post-35.xml',
                  'me': 'data/sciEntsBank/ME-inv1-28b.xml',
                  'mx': 'data/sciEntsBank/MX-inv1-22a.xml',
@@ -154,21 +179,24 @@ def load_seb_data(sample_size=1):
         answer_df = pd.concat([answer_df, answers], axis=0, ignore_index=True)
         questions.append(question)
 
-    print(answer_df)
+    if verbose:
+        print(answer_df)
     answer_df.to_csv('data/seb/answers.csv', index=False)
 
     questions_df = pd.DataFrame(questions, columns=['question','answer'])
     questions_df.to_csv('data/seb/questions.csv')
 
-    data_answers, data_labels, max_length, from_num_vocab, to_num_vocab = generate_data(answer_df, sample_size, 'id')
+    data_answers, data_labels, max_length, vocabulary = generate_data(answer_df, pretrained, sample_size, 'id')
 
-    print(data_answers)
+    if verbose:
+        print(data_answers)
+        print(data_labels)
+
     print(f"Sample Size: {len(data_answers)}")
-    print(data_labels)
     print(f"Longest answer: {max_length}")
-    print(f"Vocabulary Size:{len(from_num_vocab)}")
+    print(f"Vocabulary Size:{len(vocabulary)}")
     # Save Vocabulary
-    pd.DataFrame(from_num_vocab.values()).to_csv('data/seb/vocab.csv', index=False, header=None)
+    pd.DataFrame(vocabulary.values()).to_csv('data/seb/vocab.csv', index=False, header=None)
 
     X_train, X_test, y_train, y_test = train_test_split(data_answers, data_labels, test_size=0.30, random_state=72)
 
@@ -187,18 +215,16 @@ def load_seb_data(sample_size=1):
     test_data = pd.concat([labels_df, answers_df], axis=1)
     test_data.to_csv('data/seb/test.csv', index=False)
 
-    raw_answers = decode_answers(test_data.values, from_num_vocab)
-    for answer in raw_answers:
-        print(f"{answer[0]}. correct: {answer[1]} answer: {' '.join(answer[2:])}")
+    if verbose:
+        raw_answers = decode_answers(test_data.values, vocabulary)
+        for answer in raw_answers:
+            print(f"{answer[0]}. correct: {answer[1]} answer: {' '.join(answer[2:])}")
 
-    return X_train, y_train, X_test, y_test, max_length, from_num_vocab
+    return X_train, y_train, X_test, y_test, max_length, vocabulary
 
-def load_sag_data(percent_of_data=1, ngrams=False):
-    if ngrams:
-        filename = 'data/sag2/answers_ngrams.csv'
-    else:
-        filename = 'data/sag2/answers.csv'
-        # filename = 'data/sag2/balanced_answers.csv'
+def load_sag_data(pretrained=False, percent_of_data=1, verbose=False):
+    filename = 'data/sag2/answers.csv'
+    # filename = 'data/sag2/balanced_answers.csv'
 
     seed(72) # Python
     set_random_seed(72) # Tensorflow
@@ -208,18 +234,19 @@ def load_sag_data(percent_of_data=1, ngrams=False):
     id_to_num = str_id_map(sag_question_id_file)
     answer_df['id'] = answer_df['id'].apply(lambda a: id_to_num[a])
 
-    print(answer_df)
+    if verbose:
+        print(answer_df)
 
-    data_answers, data_labels, max_length, from_num_dict, to_num_dict = generate_data(answer_df, percent_of_data,
-                                                                                      'id', ngrams)
-
-    print(data_answers)
+    data_answers, data_labels, max_length, vocabulary = generate_data(answer_df, pretrained, percent_of_data,
+                                                                                      'id')
+    if verbose:
+        print(data_answers)
+        print(data_labels)
     print(f"Sample Size: {len(data_answers)}")
-    print(data_labels)
     print(f"Longest answer: {max_length}")
 
     # Save Vocabulary
-    pd.DataFrame(from_num_dict.values()).to_csv('data/sag2/vocab.csv', index=False, header=None)
+    pd.DataFrame(vocabulary.values()).to_csv('data/sag2/vocab.csv', index=False, header=None)
 
     X_train, X_test, y_train, y_test = train_test_split(data_answers, data_labels, test_size=0.30, random_state=72)
 
@@ -238,11 +265,12 @@ def load_sag_data(percent_of_data=1, ngrams=False):
     test_data = pd.concat([labels_df, answers_df], axis=1)
     test_data.to_csv('data/sag2/test.csv', index=False)
 
-    raw_answers = decode_answers(test_data.values, from_num_dict)
-    for answer in raw_answers:
-        print(f"{answer[0]}. correct: {answer[1]} answer: {' '.join(answer[2:])}")
+    if verbose:
+        raw_answers = decode_answers(test_data.values, vocabulary)
+        for answer in raw_answers:
+            print(f"{answer[0]}. correct: {answer[1]} answer: {' '.join(answer[2:])}")
 
-    return X_train, y_train, X_test, y_test, max_length, from_num_dict
+    return X_train, y_train, X_test, y_test, max_length, vocabulary
 
 def build_model(params):
     model = Sequential()
@@ -299,7 +327,7 @@ def save_xgb_model(model, filename):
     joblib.dump(model, filename)
 
 def train_and_test(model_dir, model_file, model_params, X_train, y_train, X_test, y_test,
-                   vocabulary, questions_file, train=False):
+                   vocabulary, questions_file, train=False, verbose=False):
 
     if train:
         # Build Model
@@ -313,8 +341,9 @@ def train_and_test(model_dir, model_file, model_params, X_train, y_train, X_test
 
     eval = evaluate(model, X_test, y_test)
 
-    results_df = decode_predictions(X_test, y_test, vocabulary, eval['Predictions'], questions_file)
-    print_results(results_df)
+    if verbose:
+        results_df = decode_predictions(X_test, y_test, vocabulary, eval['Predictions'], questions_file)
+        print_results(results_df)
 
     return model
 
@@ -333,7 +362,7 @@ def evaluate(predictor, test_features, test_labels, verbose=True):
     test_preds = np.squeeze(predictor.predict(test_features))
     min_pred = min(test_preds)
     max_pred = max(test_preds)
-    print(f"Min preds: {min_pred} max_preds: {max_pred}")
+    print(f"Min pred: {min_pred} max_pred: {max_pred}")
     test_preds = (test_preds - min_pred)/(max_pred - min_pred)
     test_preds = np.round(test_preds)
 
