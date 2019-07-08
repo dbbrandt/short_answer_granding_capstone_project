@@ -18,9 +18,18 @@ import joblib
 
 from source.glove import Glove
 
+
 answer_col = 'answer'
 predictor_col = 'correct'
 sag_question_id_file = 'data/sag2/files'
+
+glove = Glove()
+
+def get_glove():
+    global glove
+    if not glove.loaded:
+        glove = Glove(True)
+    return glove
 
 def get_xml_elements(doc, tag):
     elements = doc.getElementsByTagName(tag)
@@ -51,10 +60,10 @@ def simplified_answer(answer):
 
     text = BeautifulSoup(answer, "html.parser").get_text()  # Remove HTML tags
     text = re.sub(r"[^a-zA-Z0-9\-]", " ", text.lower())  # Convert to lower case
+
     words = text.split()  # Split string into words
     # words = [w for w in words if w not in stopwords.words("english")]  # Remove stopwords
-    words = [PorterStemmer().stem(w) for w in words]  # stem
-
+    # words = [PorterStemmer().stem(w) for w in words]  # stem
     return ' '.join(words)
 
 def str_id_map(filename):
@@ -62,54 +71,63 @@ def str_id_map(filename):
     id_to_num = {id: i for i, id in enumerate(ids)}
     return id_to_num
 
-def encode_answers(answer_df, pretrained=False, category_col=None, question_id=[]):
-    #answers = [simplified_answer(answer) for answer in answer_df[answer_col].values]
-    answers = [answer for answer in answer_df[answer_col].values]
+def encode_answers(answer_df, pretrained=False, category_col=None, question_ids=[]):
+    answers = [simplified_answer(answer) for answer in answer_df[answer_col].values]
+    # answers = [answer for answer in answer_df[answer_col].values]
     vocab_string = " ".join(answers)
     word_list = vocab_string.split()
     vocab_list = sorted(list(dict.fromkeys(word_list)))
     #vocabulary = {i: word for i, word in enumerate(vocabulary)}
 
     if pretrained:
-        encoded_answers, vocabulary = pretrained_embeddings(answers, vocab_list, category_col=None, question_id=[])
+        encoded_answers, vocabulary = pretrained_encoded(answers, category_col, question_ids)
+        print(f"Pretrained encoded_answers shape: {np.array(encoded_answers).shape}")
     else:
         to_encoded = {word: i for i, word in enumerate(vocab_list)}
         vocabulary = {i: word for i, word in enumerate(vocab_list)}
-        encoded_answers = encoded(answers, to_encoded, question_id, category_col)
+        encoded_answers = encoded(answers, to_encoded, category_col, question_ids)
+        print(f"Simple encoded_answers shape: {np.array(encoded_answers).shape}")
 
     max_length = max([len(answer) for answer in encoded_answers])
     padded_answers = pad_sequences(encoded_answers, maxlen=max_length, dtype='float', padding='post').tolist()
     padded_answers = np.array(padded_answers)
     return max_length, padded_answers, vocabulary
 
-def encoded(answers, to_encoded, question_id, category_col):
+def encoded(answers, to_encoded, category_col, question_ids):
     encoded_answers = []
     for index, answer in enumerate(answers):
-        arr = [question_id[index]] if category_col else []
+        arr = [question_ids[index]] if category_col else []
 
         for word in answer.split(' '):
             arr.append(to_encoded[word])
         encoded_answers.append(arr)
     return encoded_answers
 
-def pretrained_embeddings(answers, vocabulary, category_col=None, question_id=[]):
-    glove = Glove(True)
+def pretrained_encoded(answers, category_col, question_ids):
+    # instantiate and laod a Glove object
+    glove = get_glove()
     word2index = glove.word2index
 
     encoded_answers = []
-    from_encoded = {}
+    vocabulary = {}
     for index, answer in enumerate(answers):
-        arr = [question_id[index]] if category_col else []
-        for word in answer.split(' '):
+        arr = [question_ids[index]] if category_col else []
+        for index, word in enumerate(answer.split(' ')):
             if word in word2index:
                 i = word2index[word]
-                from_encoded[i] = word
+                vocabulary[i] = word
+                # Putpulate a custom embedding matrix with the words used.
                 arr.append(i)
             else:
                 print(f"ERROR! Word: {word} not found in dictionary")
+                arr.append(0)
 
         encoded_answers.append(arr)
-    return encoded_answers, from_encoded
+
+    # If using pretrained embeddings, load them based on the vocabulary
+    glove.load_custom_embedding(vocabulary)
+
+    return encoded_answers, vocabulary
 
 def decode_answers(encoded_answers, from_encoded, pretrained=False):
 
@@ -237,7 +255,7 @@ def load_sag_data(pretrained=False, percent_of_data=1, verbose=False):
     if verbose:
         print(answer_df)
 
-    data_answers, data_labels, max_length, vocabulary = generate_data(answer_df, pretrained, percent_of_data,
+    data_answers, data_labels, max_length, vocabulary= generate_data(answer_df, pretrained, percent_of_data,
                                                                                       'id')
     if verbose:
         print(data_answers)
@@ -274,7 +292,12 @@ def load_sag_data(pretrained=False, percent_of_data=1, verbose=False):
 
 def build_model(params):
     model = Sequential()
-    model.add(Embedding(params['vocab_size'], params['embedding_dim'], input_length=params['max_answer_len']))
+    if params['pretrained']:
+        model.add(Embedding(params['vocab_size'], params['embedding_dim'], weights=[glove.custom_embedding_matrix],
+                            input_length=params['max_answer_len'], trainable=False))
+    else:
+        model.add(Embedding(params['vocab_size'], params['embedding_dim'], input_length=params['max_answer_len']))
+
     model.add(Dropout(params['dropout']))
     if params['flatten']:
         model.add(Flatten())
@@ -294,20 +317,15 @@ def build_model(params):
     return model
 
 def fit_model(model, model_dir, epochs, X_train, y_train):
+    # fit the model
+    model.fit(X_train, y_train, epochs=epochs, verbose=1) #, validation_data=(X_test, y_test))
+
     # evaluate the model
     print(f"test_answers shape: {X_train.shape}")
     loss, accuracy = model.evaluate(X_train, y_train, verbose=0)
     print('Accuracy: %f' % (accuracy * 100))
     print('Loss: %f' % loss)
 
-    # evaluate the model
-    print(f"test_answers shape: {X_train.shape}")
-    loss, accuracy = model.evaluate(X_train, y_train, verbose=0)
-    print('Accuracy: %f' % (accuracy*100))
-    print('Loss: %f' % loss)
-
-    # fit the model
-    model.fit(X_train, y_train, epochs=epochs, verbose=1) #, validation_data=(X_test, y_test))
     save_keras_model(model, model_dir)
 
     return model

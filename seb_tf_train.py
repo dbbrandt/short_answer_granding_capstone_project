@@ -9,8 +9,12 @@ def main():
 
     X_train, y_train, X_test, y_test, max_answer_len, vocabulary = load_seb_data(pretrained)
 
+    # For preptained, the vocabulary is some subset of the full Glove dataset. We need the highest key
+    # used because the embedding layer assumes a continuous set of values.
+    vocab_size = max(vocabulary.keys())+1
+
     model_params = {'max_answer_len': max_answer_len,
-                    'vocab_size': len(vocabulary),
+                    'vocab_size': vocab_size,
                     'epochs': 200,
                     'pretrained': pretrained,
                     'embedding_dim': 50,

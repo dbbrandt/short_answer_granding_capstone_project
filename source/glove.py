@@ -9,9 +9,11 @@ class Glove:
 
     def __init__(self, load=False, filename=GLOVE_50_FILE, embedding_dim = EMBEDDING_DIM):
         self.word2index = {}
-        self.embedding_matrix = []
+        self.embedding_matrix = None
         self.vocab2embedding = {}
         self.embedding_dim = embedding_dim
+        self.custom_embedding_matrix = None
+        self.loaded = False
         if load:
             self.load_glove_embeddings(filename)
 
@@ -56,7 +58,7 @@ class Glove:
         # return word2coefs, word2index, embedding_matrix
         self.word2index = word2index
         self.embedding_matrix = np.asarray(embedding_matrix)
-
+        self.loaded = True
 
     def vocab_embeddings(self, vocabulary):
         self.word2vocab = {}
@@ -72,6 +74,8 @@ class Glove:
     def hash(embedding):
         return round(sum(map(abs, embedding)), 4)
 
+    def load_custom_embedding(self, vocabulary):
+        self.custom_embedding_matrix = [self.embedding_matrix[i] for i in vocabulary.keys()]
 
 # vocabulary = "High risk problems are address in the prototype program to make sure that the program is feasible. A prototype may also be used to show a company that the software can be possibly programmed".lower().split()
 # print(vocabulary)
