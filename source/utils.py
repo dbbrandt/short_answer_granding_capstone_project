@@ -59,7 +59,9 @@ def simplified_answer(answer):
     # nltk.download("stopwords", quiet=True)
 
     text = BeautifulSoup(answer, "html.parser").get_text()  # Remove HTML tags
-    text = re.sub(r"[^a-zA-Z0-9\-]", " ", text.lower())  # Convert to lower case
+    # text = re.sub(r"[^a-zA-Z0-9\-]", " ", text.lower())  # Convert to lower case
+    # Removed "-" to better leverage the pretrained vocabulary
+    text = re.sub(r"[^a-zA-Z0-9]", " ", text.lower())  # Convert to lower case
 
     words = text.split()  # Split string into words
     # words = [w for w in words if w not in stopwords.words("english")]  # Remove stopwords
@@ -76,15 +78,15 @@ def encode_answers(answer_df, pretrained=False, category_col=None, question_ids=
     # answers = [answer for answer in answer_df[answer_col].values]
     vocab_string = " ".join(answers)
     word_list = vocab_string.split()
-    vocab_list = sorted(list(dict.fromkeys(word_list)))
+    word_list = sorted(list(dict.fromkeys(word_list)))
     #vocabulary = {i: word for i, word in enumerate(vocabulary)}
 
     if pretrained:
-        encoded_answers, vocabulary = pretrained_encoded(answers, category_col, question_ids)
+        encoded_answers, vocabulary = pretrained_encoded(answers, word_list, category_col, question_ids)
         print(f"Pretrained encoded_answers shape: {np.array(encoded_answers).shape}")
     else:
-        to_encoded = {word: i for i, word in enumerate(vocab_list)}
-        vocabulary = {i: word for i, word in enumerate(vocab_list)}
+        to_encoded = {word: i for i, word in enumerate(word_list)}
+        vocabulary = {i: word for i, word in enumerate(word_list)}
         encoded_answers = encoded(answers, to_encoded, category_col, question_ids)
         print(f"Simple encoded_answers shape: {np.array(encoded_answers).shape}")
 
@@ -103,20 +105,23 @@ def encoded(answers, to_encoded, category_col, question_ids):
         encoded_answers.append(arr)
     return encoded_answers
 
-def pretrained_encoded(answers, category_col, question_ids):
+def pretrained_encoded(answers, word_list, category_col, question_ids):
     # instantiate and laod a Glove object
     glove = get_glove()
     word2index = glove.word2index
+    found_words = [word for word in word_list if word in word2index]
 
     encoded_answers = []
     vocabulary = {}
     for index, answer in enumerate(answers):
-        arr = [question_ids[index]] if category_col else []
-        for index, word in enumerate(answer.split(' ')):
+        arr = [int(question_ids[index])] if category_col else []
+        for word in answer.split(' '):
             if word in word2index:
+                # Create a mapping to the glove embedding word index
                 i = word2index[word]
                 vocabulary[i] = word
-                # Putpulate a custom embedding matrix with the words used.
+                # Putpulate a custom embedding matrix with the words used indexed to the actual used vocabulary size.
+                i = found_words.index(word)
                 arr.append(i)
             else:
                 print(f"ERROR! Word: {word} not found in dictionary")
@@ -152,10 +157,10 @@ def decode_predictions(X_test, y_test, vocabulary, prediction, questions_file):
     for index, answer in enumerate(decoded):
         answer_text = ' '.join(answer[1:])
         correct = y_test[index]
-        correct_answer = questions.iloc[int(answer[0])].answer
+        question = questions.iloc[int(answer[0])]
         pred = prediction[index]
-        results.append([index, answer_text, correct_answer, correct, pred])
-    return pd.DataFrame(results, columns=['id', 'answer', 'correct_answer', 'correct', 'prediction'])
+        results.append([index, question.id, answer_text, question.correct_answer, correct, pred])
+    return pd.DataFrame(results, columns=['question_id', 'test_id', 'answer', 'correct_answer', 'correct', 'prediction'])
 
 
 def generate_data(answer_df, pretrained=False, sample_size=1, question_id=None):
@@ -172,6 +177,7 @@ def generate_data(answer_df, pretrained=False, sample_size=1, question_id=None):
 
     # randomize data
     randomized_data = encoded_answer_df.reindex(np.random.permutation(encoded_answer_df.index))
+    # max will allow sample size less the 100% of data.
     max = int(len(randomized_data) * sample_size)
     randomized_labels = randomized_data[predictor_col].values[:max]
     randomized_answers = randomized_data.drop([predictor_col], axis=1).values[:max]
@@ -406,16 +412,17 @@ def evaluate(predictor, test_features, test_labels, verbose=True):
     return {'TP': tp, 'FP': fp, 'FN': fn, 'TN': tn,
             'Precision': precision, 'Recall': recall, 'Accuracy': accuracy, 'Predictions': test_preds}
 
-def print_results(results_df):
+def print_results(results_df, show_correct=False):
 
     incorrect = results_df[results_df['correct'] != results_df['prediction']]
     print("Incorrect Predictions")
     print("id, prediction, correct, answer, correct_answer")
     for index, row in incorrect.iterrows():
-        print(f'{row.id}, {row.prediction}, "{row.correct}", "{row.answer}", "{row.correct_answer}"')
+        print(f'{row.question_id}, {row.test_id}, {row.prediction}, "{row.correct}", "{row.answer}", "{row.correct_answer}"')
 
-    correct = results_df[results_df['correct'] == results_df['prediction']]
-    print("Correct Predictions")
-    print("id, prediction, correct, answer, correct_answer")
-    for index, row in correct.iterrows():
-        print(f'{row.id}, {row.prediction}, "{row.correct}", "{row.answer}", "{row.correct_answer}"')
+    if show_correct:
+        correct = results_df[results_df['correct'] == results_df['prediction']]
+        print("Correct Predictions")
+        print("id, prediction, correct, answer, correct_answer")
+        for index, row in correct.iterrows():
+            print(f'{row.question_id}, {row.test_id}, {row.prediction}, "{row.correct}", "{row.answer}", "{row.correct_answer}"')

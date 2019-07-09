@@ -1,31 +1,5 @@
 from source.utils import train_and_test, load_sag_data
 
-def main():
-    model_dir = 'model/sag'
-    model_file = '20pct'  # used to load existing model if train is false
-    questions_file = 'data/sag2/questions.csv'
-    train = True
-    # Pretrained embeddings
-    pretrained = True
-    data_percentage = 1
-
-    X_train, y_train, X_test, y_test, max_answer_len, vocabulary = load_sag_data(pretrained, data_percentage)
-
-    model_params = {'max_answer_len': max_answer_len,
-                    'vocab_size': len(vocabulary),
-                    'epochs': 30,
-                    'pretrained': True,
-                    'embedding_dim': 50,
-                    'flatten': True,
-                    'lstm_dim_1': 100,
-                    'lstm_dim_2': 20,
-                    'dropout': 0.2}
-
-    # Trains model if train=True and prints out metrics on results (see below)
-    train_and_test(model_dir, model_file, model_params, X_train, y_train, X_test, y_test,
-                   vocabulary, questions_file, train)
-
-main()
 
 # =================================================================
 # Results
@@ -470,6 +444,9 @@ main()
 # Accuracy:   0.767
 
 # Review Results
+# BEST RESULT
+# Embedding: 50, Dropout: 0.2, LSTM 1: 100, LSTM 2: 20, optmizer: Adam, epochs: 30, Train Tst Split: .3 => Accuracy: 76.7%
+# 100% of data:
 
 # Layer (type)                 Output Shape              Param #
 # =================================================================
@@ -1245,3 +1222,479 @@ main()
 # 729, 1.0, "1.0", "it is a sybol or name for a valu or number exampl a use number can stand for ani given number and the programm can refer to that number by use the variabl name", "A location in memory that can store a value."
 # 730, 1.0, "1.0", "lognwher n equal the total number of node in the tree", "The height of the tree."
 # 732, 1.0, "1.0", "multi-dimension array are store in memori by row", "By rows."
+
+
+# REPEATABILITY AFTER REFACTORING FOR PRETRAINING
+# Embedding: 50, Dropout: 0.2, LSTM 1: 100, LSTM 2: 20, optmizer: Adam, epochs: 30, Train Tst Split: .3 => Accuracy: 74.9%
+# 100% of data:
+# Pretraining: False, Flattening: True
+
+# _________________________________________________________________
+# Layer (type)                 Output Shape              Param #
+# =================================================================
+# embedding (Embedding)        (None, 176, 50)           137550
+# _________________________________________________________________
+# dropout (Dropout)            (None, 176, 50)           0
+# _________________________________________________________________
+# flatten (Flatten)            (None, 8800)              0
+# _________________________________________________________________
+# reshape (Reshape)            (None, 1, 8800)           0
+# _________________________________________________________________
+# lstm (LSTM)                  (None, 1, 100)            3560400
+# _________________________________________________________________
+# lstm_1 (LSTM)                (None, 20)                9680
+# _________________________________________________________________
+# dropout_1 (Dropout)          (None, 20)                0
+# _________________________________________________________________
+# dense (Dense)                (None, 1)                 21
+# =================================================================
+# Total params: 3,707,651
+# Trainable params: 3,707,651
+# Non-trainable params: 0
+#
+# Min pred: -0.064175084233284 max_pred: 0.9960266351699829
+# predictions  0.0  1.0
+# actuals
+# 0.0           96  106
+# 1.0           78  453
+#
+# Recall:     0.853
+# Precision:  0.810
+# Accuracy:   0.749
+
+
+# Embedding: 50, Dropout: 0.2, LSTM 1: 100, LSTM 2: 20, optmizer: Adam, epochs: 30, Train Tst Split: .3 => Accuracy: 72.3%
+# 100% of data:
+# Pretraining: False, Flattening: ** False **
+# No convergence
+# The fact that the accuracy is still high with all correct predictions could suggest blanaced data might help.
+# Still we need to overrfit at least to make sure the model is working.
+
+# _________________________________________________________________
+# Layer (type)                 Output Shape              Param #
+# =================================================================
+# embedding (Embedding)        (None, 176, 50)           137550
+# _________________________________________________________________
+# dropout (Dropout)            (None, 176, 50)           0
+# _________________________________________________________________
+# lstm (LSTM)                  (None, 176, 100)          60400
+# _________________________________________________________________
+# lstm_1 (LSTM)                (None, 20)                9680
+# _________________________________________________________________
+# dropout_1 (Dropout)          (None, 20)                0
+# _________________________________________________________________
+# dense (Dense)                (None, 1)                 21
+# =================================================================
+# Total params: 207,651
+# Trainable params: 207,651
+# Non-trainable params: 0
+# _________________________________________________________________
+# Min pred: 0.7388038039207458 max_pred: 0.739460289478302
+# predictions  0.0  1.0
+# actuals
+# 0.0            0  202
+# 1.0            1  530
+#
+# Recall:     0.998
+# Precision:  0.724
+# Accuracy:   0.723
+
+
+# Embedding: 50, Dropout: 0.2, LSTM 1: 100, LSTM 2: 0, optmizer: Adam, epochs: 30, Train Tst Split: .3 => Accuracy: 72.3%
+# 20% of data:
+# Pretraining: False, Flattening: ** True **
+# Poor accuracy. Try increasing dropout
+
+# _________________________________________________________________
+# Layer (type)                 Output Shape              Param #
+# =================================================================
+# embedding (Embedding)        (None, 176, 50)           137550
+# _________________________________________________________________
+# dropout (Dropout)            (None, 176, 50)           0
+# _________________________________________________________________
+# flatten (Flatten)            (None, 8800)              0
+# _________________________________________________________________
+# reshape (Reshape)            (None, 1, 8800)           0
+# _________________________________________________________________
+# lstm (LSTM)                  (None, 100)               3560400
+# _________________________________________________________________
+# dropout_1 (Dropout)          (None, 100)               0
+# _________________________________________________________________
+# dense (Dense)                (None, 1)                 101
+# =================================================================
+# Total params: 3,698,051
+# Trainable params: 3,698,051
+# Non-trainable params: 0
+# Min pred: -0.009839175269007683 max_pred: 1.2072569131851196
+# predictions  0.0  1.0
+# actuals
+# 0.0           19   24
+# 1.0           32   72
+#
+# Recall:     0.692
+# Precision:  0.750
+# Accuracy:   0.619
+
+
+# Embedding: 50, Dropout: **  0.4 ** , LSTM 1: 100, LSTM 2: 0, optmizer: Adam, epochs: 30, Train Tst Split: .3 => Accuracy: 66.0%
+# 20% of data:
+# Pretraining: False, Flattening: True
+# Results imporoved
+
+# _________________________________________________________________
+# Layer (type)                 Output Shape              Param #
+# =================================================================
+# embedding (Embedding)        (None, 176, 50)           137550
+# _________________________________________________________________
+# dropout (Dropout)            (None, 176, 50)           0
+# _________________________________________________________________
+# flatten (Flatten)            (None, 8800)              0
+# _________________________________________________________________
+# reshape (Reshape)            (None, 1, 8800)           0
+# _________________________________________________________________
+# lstm (LSTM)                  (None, 100)               3560400
+# _________________________________________________________________
+# dropout_1 (Dropout)          (None, 100)               0
+# _________________________________________________________________
+# dense (Dense)                (None, 1)                 101
+# =================================================================
+# Total params: 3,698,051
+# Trainable params: 3,698,051
+# Non-trainable params: 0
+# ____________________________
+# Min pred: 0.02676047757267952 max_pred: 1.1722948551177979
+# predictions  0.0  1.0
+# actuals
+# 0.0           19   24
+# 1.0           26   78
+#
+# Recall:     0.750
+# Precision:  0.765
+# Accuracy:   0.660
+
+# Embedding: 50, Dropout: 0.4, LSTM 1: 100, LSTM 2: ** 20 ** , optmizer: Adam, epochs: 30, Train Tst Split: .3 => Accuracy: 73.5%
+# 20% of data:
+# Pretraining: False, Flattening: True
+#
+
+# Layer (type)                 Output Shape              Param #
+# =================================================================
+# embedding (Embedding)        (None, 176, 50)           137550
+# _________________________________________________________________
+# dropout (Dropout)            (None, 176, 50)           0
+# _________________________________________________________________
+# flatten (Flatten)            (None, 8800)              0
+# _________________________________________________________________
+# reshape (Reshape)            (None, 1, 8800)           0
+# _________________________________________________________________
+# lstm (LSTM)                  (None, 1, 100)            3560400
+# _________________________________________________________________
+# lstm_1 (LSTM)                (None, 20)                9680
+# _________________________________________________________________
+# dropout_1 (Dropout)          (None, 20)                0
+# _________________________________________________________________
+# dense (Dense)                (None, 1)                 21
+# =================================================================
+# Total params: 3,707,651
+# Trainable params: 3,707,651
+# Non-trainable params: 0
+# _________________________________________________________________
+# Min pred: 0.03021293133497238 max_pred: 1.0583186149597168
+# predictions  0.0  1.0
+# actuals
+# 0.0           11   32
+# 1.0            7   97
+#
+# Recall:     0.933
+# Precision:  0.752
+# Accuracy:   0.735
+
+# Embedding: 50, Dropout: 0.4, LSTM 1: 100, LSTM 2: ** 20 ** , optmizer: Adam, epochs: 50, Train Tst Split: .3 => Accuracy: 72.8%
+# 20% of data:
+# Pretraining: False, Flattening: True
+#  Increasing epochs to 50
+# Not better. Try adjust dropout.
+# _________________________________________________________________
+# Layer (type)                 Output Shape              Param #
+# =================================================================
+# embedding (Embedding)        (None, 176, 50)           137550
+# _________________________________________________________________
+# dropout (Dropout)            (None, 176, 50)           0
+# _________________________________________________________________
+# flatten (Flatten)            (None, 8800)              0
+# _________________________________________________________________
+# reshape (Reshape)            (None, 1, 8800)           0
+# _________________________________________________________________
+# lstm (LSTM)                  (None, 1, 100)            3560400
+# _________________________________________________________________
+# lstm_1 (LSTM)                (None, 20)                9680
+# _________________________________________________________________
+# dropout_1 (Dropout)          (None, 20)                0
+# _________________________________________________________________
+# dense (Dense)                (None, 1)                 21
+# =================================================================
+# Total params: 3,707,651
+# Trainable params: 3,707,651
+# Non-trainable params: 0
+# Min pred: 0.009506851434707642 max_pred: 1.0037037134170532
+# predictions  0.0  1.0
+# actuals
+# 0.0           12   31
+# 1.0            9   95
+#
+# Recall:     0.913
+# Precision:  0.754
+# Accuracy:   0.728
+
+
+# Embedding: 50, Dropout: ** 0.3 **, LSTM 1: 100, LSTM 2: ** 20 ** , optmizer: Adam, epochs: 50, Train Tst Split: .3 => Accuracy: 72.8%
+# 20% of data:
+# Pretraining: False, Flattening: True
+# No Change.
+# Min pred: 0.018912866711616516 max_pred: 1.0174280405044556
+# predictions  0.0  1.0
+# actuals
+# 0.0           11   32
+# 1.0            8   96
+#
+# Recall:     0.923
+# Precision:  0.750
+# Accuracy:   0.728
+
+# Embedding: 50, Dropout: 0.3, LSTM 1: 100, LSTM 2: 20 , optmizer: Adam, epochs: ** 50 ** , Train Tst Split: .3 => Accuracy: 76.1%
+# ** 100% ** of data:
+# Pretraining: False, Flattening: True
+# _________________________________________________________________
+# Layer (type)                 Output Shape              Param #
+# =================================================================
+# embedding (Embedding)        (None, 176, 50)           137550
+# _________________________________________________________________
+# dropout (Dropout)            (None, 176, 50)           0
+# _________________________________________________________________
+# flatten (Flatten)            (None, 8800)              0
+# _________________________________________________________________
+# reshape (Reshape)            (None, 1, 8800)           0
+# _________________________________________________________________
+# lstm (LSTM)                  (None, 1, 100)            3560400
+# _________________________________________________________________
+# lstm_1 (LSTM)                (None, 20)                9680
+# _________________________________________________________________
+# dropout_1 (Dropout)          (None, 20)                0
+# _________________________________________________________________
+# dense (Dense)                (None, 1)                 21
+# =================================================================
+# Total params: 3,707,651
+# Trainable params: 3,707,651
+# Non-trainable params: 0
+# _________________________________________________________________
+# Min pred: 0.02539202570915222 max_pred: 1.0170257091522217
+# predictions  0.0  1.0
+# actuals
+# 0.0          108   94
+# 1.0           81  450
+#
+# Recall:     0.847
+# Precision:  0.827
+# Accuracy:   0.761
+
+# Embedding: 50, Dropout: 0.3, LSTM 1: 100, LSTM 2: 20 , optmizer: Adam, epochs: ** 50 ** , Train Tst Split: .3 => Accuracy: 72.3%
+# 100% of data:
+# Pretraining: True, Flattening: True
+# No convergence.
+
+# Layer (type)                 Output Shape              Param #
+# =================================================================
+# embedding (Embedding)        (None, 176, 50)           109250
+# _________________________________________________________________
+# dropout (Dropout)            (None, 176, 50)           0
+# _________________________________________________________________
+# flatten (Flatten)            (None, 8800)              0
+# _________________________________________________________________
+# reshape (Reshape)            (None, 1, 8800)           0
+# _________________________________________________________________
+# lstm (LSTM)                  (None, 1, 100)            3560400
+# _________________________________________________________________
+# lstm_1 (LSTM)                (None, 20)                9680
+# _________________________________________________________________
+# dropout_1 (Dropout)          (None, 20)                0
+# _________________________________________________________________
+# dense (Dense)                (None, 1)                 21
+# =================================================================
+# Total params: 3,679,351
+# Trainable params: 3,570,101
+# Non-trainable params: 109,250
+# _________________________________________________________________
+# Min pred: 0.5775130391120911 max_pred: 0.6783055067062378
+# predictions  0.0  1.0
+# actuals
+# 0.0            0  202
+# 1.0            1  530
+#
+# Recall:     0.998
+# Precision:  0.724
+# Accuracy:   0.723
+
+
+
+# Embedding: 50, Dropout: ** 0.1 **, LSTM 1: 100, LSTM 2: 20 , optmizer: Adam, epochs: ** 30 ** , Train Tst Split: .3 => Accuracy: xx%
+# ** 20% ** of data:
+# Pretraining: True, Flattening: False
+# No convergence.
+# 464 words not in Embedding dictionary out of 2648
+
+# Embedding: 50, Dropout: 0.1,  LSTM 1: 100, LSTM 2: 0 , optmizer: Adam, epochs: ** 30 ** , Train Tst Split: .3 => Accuracy: 29.9%
+# ** 20% ** of data:
+# Pretraining: True, Flattening: True
+# No convergence.
+# 464 words not in Embedding dictionary out of 2648
+
+# Embedding: 50, Dropout: 0.1,  LSTM 1: 100, LSTM 2: 20 , optmizer: Adam, epochs: ** 15 ** , Train Tst Split: .3 => Accuracy: 32.7%
+# ** 50% ** of data:
+# Pretraining: True, Flattening: False
+# No convergence.
+# 464 words not in Embedding dictionary out of 2648
+# Min pred: 0.6504943370819092 max_pred: 0.650494396686554
+# predictions  0.0  1.0
+# actuals
+# 0.0           78   15
+# 1.0          232   42
+#
+# Recall:     0.153
+# Precision:  0.737
+# Accuracy:   0.327
+
+
+# Embedding: 50, Dropout: ** 0.2 **,  LSTM 1: ** 200 **, LSTM 2: ** 100 ** , optmizer: Adam, epochs: 15, Train Tst Split: .3 => Accuracy: 51.5%
+# ** 50% ** of data:
+# Pretraining: True, Flattening: False
+# Non convergence
+
+# Min pred: 0.6544680595397949 max_pred: 0.6544681787490845
+# predictions  0.0  1.0
+# actuals
+# 0.0           48   45
+# 1.0          133  141
+#
+# Recall:     0.515
+# Precision:  0.758
+# Accuracy:   0.515
+
+# Embedding: 50, Dropout: ** 0.2 **,  LSTM 1: ** 200 **, LSTM 2: ** 100 ** , optmizer: Adam, epochs: 15, Train Tst Split: .3 => Accuracy: 51.5%
+# ** 50% ** of data:
+# Pretraining: True, Flattening: False
+# Non convergence
+
+# Min pred: 0.6544680595397949 max_pred: 0.6544681787490845
+# predictions  0.0  1.0
+# actuals
+# 0.0           48   45
+# 1.0          133  141
+#
+# Recall:     0.515
+# Precision:  0.758
+# Accuracy:   0.515
+
+# Embedding: 50, Dropout: ** 0.0 **,  LSTM 1: 200, LSTM 2: ** 20 ** , optmizer: Adam, epochs: 15, Train Tst Split: .3 => Accuracy: 51.5%
+# ** 50% ** of data:
+# Pretraining: True, Flattening: False
+# Non convergence
+# Min pred: 0.6544680595397949 max_pred: 0.6544681787490845
+# predictions  0.0  1.0
+# actuals
+# 0.0           48   45
+# 1.0          133  141
+#
+# Recall:     0.515
+# Precision:  0.758
+# Accuracy:   0.515
+
+# Embedding: 50, Dropout: ** 0.2 **,  LSTM 1: 200, LSTM 20: ** 20 ** , optmizer: Adam, epochs: 60, Train Tst Split: .3 => Accuracy: 51.5%
+# Min pred: 0.7089176774024963 max_pred: 0.7089177370071411
+# predictions  0.0  1.0
+# actuals
+# 0.0           11   82
+# 1.0           54  220
+#
+# Recall:     0.803
+# Precision:  0.728
+# Accuracy:   0.629
+
+def main():
+    model_dir = 'model/sag'
+    model_file = '20pct'  # used to load existing model if train is false
+    questions_file = 'data/sag2/questions.csv'
+    train = True
+    # Pretrained embeddings
+    pretrained = False
+    data_percentage = 1
+
+    X_train, y_train, X_test, y_test, max_answer_len, vocabulary = load_sag_data(pretrained, data_percentage)
+
+    vocab_size = len(vocabulary)
+    print(f"Vocabulary Size: {vocab_size}")
+
+    model_params = {'max_answer_len': max_answer_len,
+                    'vocab_size': vocab_size,
+                    'epochs': 50,
+                    'pretrained': pretrained,
+                    'embedding_dim': 50,
+                    'flatten': True,
+                    'lstm_dim_1': 100,
+                    'lstm_dim_2': 20,
+                    'dropout': 0.3}
+
+    # Trains model if train=True and prints out metrics on results (see below)
+    train_and_test(model_dir, model_file, model_params, X_train, y_train, X_test, y_test,
+                   vocabulary, questions_file, train, True)
+
+main()
+
+
+# Embedding: 50, Dropout: 0.3, LSTM 1: 100, LSTM 2: 20, optmizer: Adam, epochs: 50, Train Tst Split: .3 => Accuracy: 76.0%
+# # 100% of data:
+# # Pretrained: False, Flattened: True
+# # Min pred: 0.02265217900276184 max_pred: 1.025069236755371
+# # predictions  0.0  1.0
+# # actuals
+# # 0.0          107   95
+# # 1.0           81  450
+# #
+# # Recall:     0.847
+# # Precision:  0.826
+# # Accuracy:   0.760
+
+
+# Embedding: 50, Dropout: 0.3, LSTM 1: 100, LSTM 2: 20, optmizer: Adam, epochs: 100, Train Tst Split: .3 => Accuracy: XX.X%
+# 100% of data:
+# Pretrained: False, Flattened: True
+# Layer (type)                 Output Shape              Param #
+# =================================================================
+# embedding (Embedding)        (None, 176, 50)           132400
+# _________________________________________________________________
+# dropout (Dropout)            (None, 176, 50)           0
+# _________________________________________________________________
+# flatten (Flatten)            (None, 8800)              0
+# _________________________________________________________________
+# reshape (Reshape)            (None, 1, 8800)           0
+# _________________________________________________________________
+# lstm (LSTM)                  (None, 1, 100)            3560400
+# _________________________________________________________________
+# lstm_1 (LSTM)                (None, 20)                9680
+# _________________________________________________________________
+# dropout_1 (Dropout)          (None, 20)                0
+# _________________________________________________________________
+# dense (Dense)                (None, 1)                 21
+# =================================================================
+# Total params: 3,702,501
+# Trainable params: 3,702,501
+# Non-trainable params: 0
+
+# Min pred: 0.02265217900276184 max_pred: 1.025069236755371
+# predictions  0.0  1.0
+# actuals
+# 0.0          107   95
+# 1.0           81  450
+#
+# Recall:     0.847
+# Precision:  0.826
+# Accuracy:   0.760

@@ -75,7 +75,9 @@ class Glove:
         return round(sum(map(abs, embedding)), 4)
 
     def load_custom_embedding(self, vocabulary):
-        self.custom_embedding_matrix = [self.embedding_matrix[i] for i in vocabulary.keys()]
+        self.custom_embedding_matrix = np.zeros((len(vocabulary),50))
+        for index, key in enumerate(vocabulary.keys()):
+            self.custom_embedding_matrix[index] = self.embedding_matrix[key]
 
 # vocabulary = "High risk problems are address in the prototype program to make sure that the program is feasible. A prototype may also be used to show a company that the software can be possibly programmed".lower().split()
 # print(vocabulary)
