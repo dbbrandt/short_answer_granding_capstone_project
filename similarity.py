@@ -1,5 +1,5 @@
 from sklearn.feature_extraction.text import CountVectorizer
-
+import numpy as np
 
 # Calculate the ngram containment for one answer file/source file pair in a df
 def calculate_containment(questions, answers, n_array):
@@ -66,7 +66,7 @@ def calculate_average_containment(n, df):
         containment_vals[category] += c
     return containment_vals / category_vals
 
-def show_average_containment(complete_df):
+def show_average_containment(complete_df, n):
     results = {'all': 0, 'train': 0, 'test': 0}
     results['all'] = calculate_average_containment(n, complete_df)
     train_df = complete_df.loc[complete_df['Datatype'] != 'test']
@@ -155,41 +155,5 @@ def create_lcs_features(df, column_name='lcs_word'):
             lcs_values.append(-1)
 
     print('LCS features created!')
-    return lcs_value
+    return lcs_values
 
-def generate_ngrams():
-    # Define an ngram range
-    ngram_range = range(1, 10)
-
-    # The following code may take a minute to run, depending on your ngram_range
-    """
-    DON'T MODIFY ANYTHING IN THIS CELL THAT IS BELOW THIS LINE
-    """
-    features_list = []
-
-    # Create features in a features_df
-    all_features = np.zeros((len(ngram_range) + 1, len(complete_df)))
-
-    # Calculate features for containment for ngrams in range
-    i = 0
-    for n in ngram_range:
-        column_name = 'c_' + str(n)
-        features_list.append(column_name)
-        # create containment features
-        all_features[i] = np.squeeze(create_containment_features(complete_df, n))
-        i += 1
-
-    # Calculate features for LCS_Norm Words
-    features_list.append('lcs_word')
-    all_features[i] = np.squeeze(create_lcs_features(complete_df))
-
-    # create a features dataframe
-    features_df = pd.DataFrame(np.transpose(all_features), columns=features_list)
-
-    # Print all features/columns
-    print()
-    print('Features: ', features_list)
-
-    corr_matrix = features_df.corr().abs().round(2)
-    # display shows all of a dataframe
-    display(corr_matrix)

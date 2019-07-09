@@ -1,5 +1,5 @@
 import pandas as pd
-from source.similarity import calculate_containment
+from similarity import calculate_containment
 
 answers = pd.read_csv('data/sag2/answers.csv', dtype={'id':str})
 questions = pd.read_csv('data/sag2/questions.csv', dtype={'id':str})
