@@ -1,0 +1,21 @@
+Manually added two features to the test data to see if ng1 and ng2 values based on comparing the student
+answer to the correct answer would help. Results were not significantly better to justify more investigation at this time.
+However, the concept of having some match feature based on the answer vs. correct answer seems to be a good idea.
+It would likely involve collecting examples of a decent variety of good answer variations as import to the ng calcs.
+
+XGBClassifier(base_score=0.5, booster='gbtree', colsample_bylevel=1,
+              colsample_bynode=1, colsample_bytree=1, gamma=1,
+              learning_rate=0.01, max_delta_step=0, max_depth=4,
+              min_child_weight=6, missing=None, n_estimators=10000, n_jobs=1,
+              nthread=None, objective='binary:logistic', random_state=0,
+              reg_alpha=0, reg_lambda=1, scale_pos_weight=1, seed=None,
+              silent=None, subsample=0.8, verbosity=0)
+Min preds: 0.0 max_preds: 1.0
+predictions  0.0  1.0
+actuals
+0.0           72  130
+1.0           32  499
+#
+Recall:     0.940
+Precision:  0.793
+Accuracy:   0.779

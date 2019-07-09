@@ -79,8 +79,4 @@ class Glove:
         for index, key in enumerate(vocabulary.keys()):
             self.custom_embedding_matrix[index] = self.embedding_matrix[key]
 
-# vocabulary = "High risk problems are address in the prototype program to make sure that the program is feasible. A prototype may also be used to show a company that the software can be possibly programmed".lower().split()
-# print(vocabulary)
-# glove = Glove(True)
-# word_embeddings = glove.vocab_embeddings(vocabulary)
-# print(word_embeddings)
+

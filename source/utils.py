@@ -68,11 +68,6 @@ def simplified_answer(answer):
     # words = [PorterStemmer().stem(w) for w in words]  # stem
     return ' '.join(words)
 
-def str_id_map(filename):
-    ids = pd.read_csv(filename, dtype={'id': str})['id'].values
-    id_to_num = {id: i for i, id in enumerate(ids)}
-    return id_to_num
-
 def encode_answers(answer_df, pretrained=False, category_col=None, question_ids=[]):
     answers = [simplified_answer(answer) for answer in answer_df[answer_col].values]
     # answers = [answer for answer in answer_df[answer_col].values]
@@ -151,7 +146,7 @@ def decode_answers(encoded_answers, from_encoded, pretrained=False):
     return decoded_answers
 
 def decode_predictions(X_test, y_test, vocabulary, prediction, questions_file):
-    questions = pd.read_csv(questions_file, index_col=0)
+    questions = pd.read_csv(questions_file, dtype={'id':str})
     decoded = decode_answers(X_test, vocabulary)
     results = []
     for index, answer in enumerate(decoded):
@@ -159,8 +154,8 @@ def decode_predictions(X_test, y_test, vocabulary, prediction, questions_file):
         correct = y_test[index]
         question = questions.iloc[int(answer[0])]
         pred = prediction[index]
-        results.append([index, question.id, answer_text, question.correct_answer, correct, pred])
-    return pd.DataFrame(results, columns=['question_id', 'test_id', 'answer', 'correct_answer', 'correct', 'prediction'])
+        results.append([index, question.id, answer_text, question.answer, correct, pred])
+    return pd.DataFrame(results, columns=['test_id', 'question_id', 'answer', 'correct_answer', 'correct', 'prediction'])
 
 
 def generate_data(answer_df, pretrained=False, sample_size=1, question_id=None):
@@ -246,6 +241,15 @@ def load_seb_data(pretrained=False, sample_size=1, verbose=False):
 
     return X_train, y_train, X_test, y_test, max_length, vocabulary
 
+
+def str_id_map(filename):
+    ''' Function to create a map of arbitrary question identifiers (string) to numbers
+        The SAG data has a X.Y notation for quetions which are non-numerical ex. 12.10.
+    '''
+    ids = pd.read_csv(filename, dtype={'id': str})['id'].values
+    id_to_num = {id: i for i, id in enumerate(ids)}
+    return id_to_num
+
 def load_sag_data(pretrained=False, percent_of_data=1, verbose=False):
     filename = 'data/sag2/answers.csv'
     # filename = 'data/sag2/balanced_answers.csv'
@@ -255,14 +259,14 @@ def load_sag_data(pretrained=False, percent_of_data=1, verbose=False):
 
     answer_df = pd.read_csv(filename, dtype={'id': str})
 
+    # We need to convert the question id which is text to a number for future identification of related question.
     id_to_num = str_id_map(sag_question_id_file)
     answer_df['id'] = answer_df['id'].apply(lambda a: id_to_num[a])
 
     if verbose:
         print(answer_df)
 
-    data_answers, data_labels, max_length, vocabulary= generate_data(answer_df, pretrained, percent_of_data,
-                                                                                      'id')
+    data_answers, data_labels, max_length, vocabulary= generate_data(answer_df, pretrained, percent_of_data, 'id')
     if verbose:
         print(data_answers)
         print(data_labels)
@@ -416,13 +420,13 @@ def print_results(results_df, show_correct=False):
 
     incorrect = results_df[results_df['correct'] != results_df['prediction']]
     print("Incorrect Predictions")
-    print("id, prediction, correct, answer, correct_answer")
+    print("id, question_id, prediction, correct, answer, correct_answer")
     for index, row in incorrect.iterrows():
-        print(f'{row.question_id}, {row.test_id}, {row.prediction}, "{row.correct}", "{row.answer}", "{row.correct_answer}"')
+        print(f'{row.test_id},{row.question_id},{row.prediction},{row.correct},"{row.answer}","{row.correct_answer}"')
 
     if show_correct:
         correct = results_df[results_df['correct'] == results_df['prediction']]
         print("Correct Predictions")
-        print("id, prediction, correct, answer, correct_answer")
-        for index, row in correct.iterrows():
-            print(f'{row.question_id}, {row.test_id}, {row.prediction}, "{row.correct}", "{row.answer}", "{row.correct_answer}"')
+        print("id, question_id, prediction, correct, answer, correct_answer")
+        for index, row in incorrect.iterrows():
+            print(f'{row.test_id},{row.question_id},{row.prediction},{row.correct},"{row.answer}","{row.correct_answer}"')
