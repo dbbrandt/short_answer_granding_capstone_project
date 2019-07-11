@@ -1,0 +1,250 @@
+estimator = sagemaker.estimator.Estimator(container, # The location of the container we wish to use
+                                    role,                                    # What is our current IAM Role
+                                    train_instance_count=1,                  # How many compute instances
+                                    train_instance_type='ml.m4.xlarge',      # What kind of compute instances
+                                    output_path='s3://{}/{}/output'.format(sagemaker_session.default_bucket(), prefix),
+                                    sagemaker_session=sagemaker_session)
+
+estimator.set_hyperparameters(max_depth=5,
+                        eta=0.2,
+                        gamma=4,
+                        min_child_weight=6,
+                        subsample=0.8,
+                        silence=1,
+                        objective='binary:logistic',
+                        early_stopping_rounds=50,
+                        num_round=4000)
+
+# First, make sure to import the relevant objects used to construct the tuner
+from sagemaker.tuner import IntegerParameter, ContinuousParameter, HyperparameterTuner
+
+xgb_hyperparameter_tuner = HyperparameterTuner(estimator = estimator, # The estimator object to use as the basis for the training jobs.
+                                               objective_metric_name = 'validation:rmse', # The metric used to compare trained models.
+                                               objective_type = 'Minimize', # Whether we wish to minimize or maximize the metric.
+                                               max_jobs = 18, # The total number of models to train
+                                               max_parallel_jobs = 6, # The number of models to train in parallel
+                                               hyperparameter_ranges = {
+                                                    'max_depth': IntegerParameter(3, 12),
+                                                    'eta'      : ContinuousParameter(0.05, 0.5),
+                                                    'min_child_weight': IntegerParameter(2, 8),
+                                                    'subsample': ContinuousParameter(0.5, 0.9),
+                                                    'gamma': ContinuousParameter(0, 10),
+                                               })
+
+
+xgb_hyperparameter_tuner.fit({'train': s3_input_train, 'validation': s3_input_validation})
+
+training_job_name = xgb_hyperparameter_tuner.best_training_job()
+estimator = sagemaker.estimator.Estimator.attach(training_job_name)
+
+2019-07-10 02:09:51 Starting - Preparing the instances for training
+2019-07-10 02:09:51 Downloading - Downloading input data
+2019-07-10 02:09:51 Training - Training image download completed. Training in progress.
+2019-07-10 02:09:51 Uploading - Uploading generated training model
+2019-07-10 02:09:51 Completed - Training job completedArguments: train
+[2019-07-10:02:09:39:INFO] Running standalone xgboost training.
+[2019-07-10:02:09:39:INFO] Setting up HPO optimized metric to be : rmse
+[2019-07-10:02:09:39:INFO] File size need to be processed in the node: 1.23mb. Available memory size in the node: 8454.83mb
+[2019-07-10:02:09:39:INFO] Determined delimiter of CSV input is ','
+[02:09:39] S3DistributionType set as FullyReplicated
+[02:09:39] 1200x176 matrix with 211200 entries loaded from /opt/ml/input/data/train?format=csv&label_column=0&delimiter=,
+[2019-07-10:02:09:39:INFO] Determined delimiter of CSV input is ','
+[02:09:39] S3DistributionType set as FullyReplicated
+[02:09:39] 509x176 matrix with 89584 entries loaded from /opt/ml/input/data/validation?format=csv&label_column=0&delimiter=,
+[02:09:39] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 68 extra nodes, 6 pruned nodes, max_depth=11
+[0]#011train-rmse:0.465387#011validation-rmse:0.481311
+Multiple eval metrics have been passed: 'validation-rmse' will be used for early stopping.
+
+Will train until validation-rmse hasn't improved in 50 rounds.
+[02:09:39] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 68 extra nodes, 8 pruned nodes, max_depth=12
+[1]#011train-rmse:0.438498#011validation-rmse:0.467141
+[02:09:39] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 74 extra nodes, 6 pruned nodes, max_depth=12
+[2]#011train-rmse:0.416668#011validation-rmse:0.459103
+[02:09:39] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 66 extra nodes, 10 pruned nodes, max_depth=12
+[3]#011train-rmse:0.398531#011validation-rmse:0.454414
+[02:09:39] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 72 extra nodes, 4 pruned nodes, max_depth=11
+[4]#011train-rmse:0.383069#011validation-rmse:0.452064
+[02:09:39] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 78 extra nodes, 4 pruned nodes, max_depth=12
+[5]#011train-rmse:0.367304#011validation-rmse:0.448212
+[02:09:39] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 82 extra nodes, 6 pruned nodes, max_depth=11
+[6]#011train-rmse:0.354118#011validation-rmse:0.445393
+[02:09:39] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 72 extra nodes, 8 pruned nodes, max_depth=11
+[7]#011train-rmse:0.342734#011validation-rmse:0.444012
+[02:09:39] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 70 extra nodes, 10 pruned nodes, max_depth=12
+[8]#011train-rmse:0.332559#011validation-rmse:0.443311
+[02:09:39] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 66 extra nodes, 6 pruned nodes, max_depth=12
+[9]#011train-rmse:0.324257#011validation-rmse:0.441478
+[02:09:39] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 64 extra nodes, 12 pruned nodes, max_depth=12
+[10]#011train-rmse:0.316021#011validation-rmse:0.439904
+[02:09:39] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 48 extra nodes, 6 pruned nodes, max_depth=12
+[11]#011train-rmse:0.309794#011validation-rmse:0.439999
+[02:09:39] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 66 extra nodes, 4 pruned nodes, max_depth=12
+[12]#011train-rmse:0.301316#011validation-rmse:0.439553
+[02:09:39] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 60 extra nodes, 12 pruned nodes, max_depth=12
+[13]#011train-rmse:0.294644#011validation-rmse:0.441108
+[02:09:39] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 52 extra nodes, 2 pruned nodes, max_depth=12
+[14]#011train-rmse:0.288178#011validation-rmse:0.440025
+[02:09:39] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 48 extra nodes, 14 pruned nodes, max_depth=12
+[15]#011train-rmse:0.282354#011validation-rmse:0.442209
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 48 extra nodes, 10 pruned nodes, max_depth=12
+[16]#011train-rmse:0.277459#011validation-rmse:0.443897
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 48 extra nodes, 16 pruned nodes, max_depth=11
+[17]#011train-rmse:0.271464#011validation-rmse:0.442506
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 46 extra nodes, 8 pruned nodes, max_depth=12
+[18]#011train-rmse:0.267107#011validation-rmse:0.444095
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 54 extra nodes, 18 pruned nodes, max_depth=9
+[19]#011train-rmse:0.261729#011validation-rmse:0.444733
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 44 extra nodes, 6 pruned nodes, max_depth=12
+[20]#011train-rmse:0.258031#011validation-rmse:0.444645
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 62 extra nodes, 8 pruned nodes, max_depth=11
+[21]#011train-rmse:0.252172#011validation-rmse:0.443982
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 48 extra nodes, 4 pruned nodes, max_depth=12
+[22]#011train-rmse:0.247085#011validation-rmse:0.444547
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 52 extra nodes, 14 pruned nodes, max_depth=8
+[23]#011train-rmse:0.241881#011validation-rmse:0.445453
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 46 extra nodes, 18 pruned nodes, max_depth=11
+[24]#011train-rmse:0.237618#011validation-rmse:0.444879
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 42 extra nodes, 10 pruned nodes, max_depth=12
+[25]#011train-rmse:0.233611#011validation-rmse:0.444388
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 46 extra nodes, 12 pruned nodes, max_depth=12
+[26]#011train-rmse:0.229645#011validation-rmse:0.444681
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 32 extra nodes, 8 pruned nodes, max_depth=11
+[27]#011train-rmse:0.226965#011validation-rmse:0.445629
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 42 extra nodes, 20 pruned nodes, max_depth=9
+[28]#011train-rmse:0.221929#011validation-rmse:0.445291
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 48 extra nodes, 10 pruned nodes, max_depth=12
+[29]#011train-rmse:0.217315#011validation-rmse:0.445157
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 32 extra nodes, 18 pruned nodes, max_depth=12
+[30]#011train-rmse:0.214249#011validation-rmse:0.445501
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 38 extra nodes, 18 pruned nodes, max_depth=12
+[31]#011train-rmse:0.211433#011validation-rmse:0.446757
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 38 extra nodes, 18 pruned nodes, max_depth=10
+[32]#011train-rmse:0.208905#011validation-rmse:0.448893
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 42 extra nodes, 16 pruned nodes, max_depth=10
+[33]#011train-rmse:0.205893#011validation-rmse:0.449571
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 36 extra nodes, 20 pruned nodes, max_depth=10
+[34]#011train-rmse:0.203216#011validation-rmse:0.45001
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 44 extra nodes, 6 pruned nodes, max_depth=12
+[35]#011train-rmse:0.199117#011validation-rmse:0.449878
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 34 extra nodes, 18 pruned nodes, max_depth=12
+[36]#011train-rmse:0.196973#011validation-rmse:0.450337
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 38 extra nodes, 16 pruned nodes, max_depth=10
+[37]#011train-rmse:0.193506#011validation-rmse:0.450023
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 32 extra nodes, 18 pruned nodes, max_depth=8
+[38]#011train-rmse:0.190996#011validation-rmse:0.449143
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 26 extra nodes, 24 pruned nodes, max_depth=7
+[39]#011train-rmse:0.189383#011validation-rmse:0.449138
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 32 extra nodes, 20 pruned nodes, max_depth=12
+[40]#011train-rmse:0.186474#011validation-rmse:0.449552
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 20 extra nodes, 30 pruned nodes, max_depth=8
+[41]#011train-rmse:0.185619#011validation-rmse:0.449933
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 30 extra nodes, 18 pruned nodes, max_depth=7
+[42]#011train-rmse:0.183637#011validation-rmse:0.449764
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 34 extra nodes, 16 pruned nodes, max_depth=10
+[43]#011train-rmse:0.181017#011validation-rmse:0.450794
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 32 extra nodes, 16 pruned nodes, max_depth=11
+[44]#011train-rmse:0.17851#011validation-rmse:0.451368
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 28 extra nodes, 20 pruned nodes, max_depth=8
+[45]#011train-rmse:0.176594#011validation-rmse:0.452466
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 24 extra nodes, 24 pruned nodes, max_depth=10
+[46]#011train-rmse:0.175245#011validation-rmse:0.452848
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 28 extra nodes, 20 pruned nodes, max_depth=9
+[47]#011train-rmse:0.173511#011validation-rmse:0.452168
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 32 extra nodes, 16 pruned nodes, max_depth=9
+[48]#011train-rmse:0.171277#011validation-rmse:0.451931
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 22 extra nodes, 24 pruned nodes, max_depth=5
+[49]#011train-rmse:0.169262#011validation-rmse:0.45265
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 20 extra nodes, 24 pruned nodes, max_depth=7
+[50]#011train-rmse:0.167923#011validation-rmse:0.453012
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 14 extra nodes, 32 pruned nodes, max_depth=7
+[51]#011train-rmse:0.167135#011validation-rmse:0.452854
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 22 extra nodes, 24 pruned nodes, max_depth=9
+[52]#011train-rmse:0.165953#011validation-rmse:0.453116
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 24 extra nodes, 24 pruned nodes, max_depth=9
+[53]#011train-rmse:0.164674#011validation-rmse:0.453374
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 20 extra nodes, 26 pruned nodes, max_depth=6
+[54]#011train-rmse:0.163658#011validation-rmse:0.453495
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 16 extra nodes, 30 pruned nodes, max_depth=7
+[55]#011train-rmse:0.162746#011validation-rmse:0.452928
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 20 extra nodes, 26 pruned nodes, max_depth=8
+[56]#011train-rmse:0.161478#011validation-rmse:0.452878
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 20 extra nodes, 26 pruned nodes, max_depth=7
+[57]#011train-rmse:0.160321#011validation-rmse:0.453742
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 30 extra nodes, 14 pruned nodes, max_depth=10
+[58]#011train-rmse:0.1589#011validation-rmse:0.453946
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 10 extra nodes, 36 pruned nodes, max_depth=5
+[59]#011train-rmse:0.158131#011validation-rmse:0.453857
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 22 extra nodes, 18 pruned nodes, max_depth=6
+[60]#011train-rmse:0.156606#011validation-rmse:0.453727
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 22 extra nodes, 20 pruned nodes, max_depth=9
+[61]#011train-rmse:0.154917#011validation-rmse:0.453087
+[02:09:40] src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 16 extra nodes, 24 pruned nodes, max_depth=8
+[62]#011train-rmse:0.154175#011validation-rmse:0.452868
+Stopping. Best iteration:
+[12]#011train-rmse:0.301316#011validation-rmse:0.439553
+
+Billable seconds: 64
+
+print(estimator.hyperparameters())
+{'_tuning_objective_metric': 'validation:rmse',
+'early_stopping_rounds': '50',
+'eta': '0.18453742190036415',
+'gamma': '1.172819580164359',
+'max_depth': '12',
+'min_child_weight': '3',
+'num_round': '4000',
+'objective': 'binary:logistic',
+'silence': '1',
+'subsample': '0.8072523281292951'}
+
+
+predictions  0.0  1.0
+actuals
+0.0           63  140
+1.0          165  366
+
+Recall:     0.689
+Precision:  0.723
+Accuracy:   0.584
+
+Results are poor.
+
+Manual run to establish a better result baseline using more iterations as done locally:
+
+estimator = sagemaker.estimator.Estimator(container, # The location of the container we wish to use
+                                    role,                                    # What is our current IAM Role
+                                    train_instance_count=1,                  # How many compute instances
+                                    train_instance_type='ml.m4.xlarge',      # What kind of compute instances
+                                    output_path='s3://{}/{}/output'.format(sagemaker_session.default_bucket(), prefix),
+                                    sagemaker_session=sagemaker_session)
+
+estimator.set_hyperparameters(max_depth=15,
+                        eta=0.01,
+                        gamma=1,
+                        min_child_weight=6,
+                        subsample=0.8,
+                        silence=1,
+                        objective='binary:logistic',
+                        early_stopping_rounds=50,
+                        num_round=10000)
+
+
+{'max_depth': 15,
+'eta': 0.01,
+'gamma': 1,
+'min_child_weight': 6,
+'subsample': 0.8,
+'silence': 1,
+'objective': 'binary:logistic',
+'early_stopping_rounds': 50,
+'num_round': 10000}
+
+
+predictions  0.0  1.0
+actuals
+0.0           57  146
+1.0           83  448
+
+Recall:     0.844
+Precision:  0.754
+Accuracy:   0.688

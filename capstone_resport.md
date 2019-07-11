@@ -1,32 +1,196 @@
 # Machine Learning Engineer Nanodegree
 ## Capstone Project
 Daniel Brandt
-July, xx 2019
+July, 10 2019
 
 ## I. Definition
-_(approx. 1-2 pages)_
 
 ### Project Overview
-In this section, look to provide a high-level overview of the project in layman’s terms. Questions to ask yourself when writing this section:
-- _Has an overview of the project been provided, such as the problem domain, project origin, and related datasets or input data?_
-- _Has enough background information been given so that an uninformed reader would understand the problem domain and following problem statement?_
+
+#### Background ####
+Automation of grading multiple choice exams is trivial. For many reasons, however, short answer tests provide a better tool for helping students assess their knowledge. So far, this area remains a challenge and machine learning has not yet provided usable solutions.
+Several papers have discussed both algorithmic natural language solutions as well as deep learning approches. None of the approaches so far have provided a general pupose solution to the many challenges faced. 
+These challenges are in some ways very similar to some of the most important AI projects of our time: Intelligent Assistants like Apple Siri, Amazon Echo and the Google Assistant. 
+Given a very broad set of possible subjects, any given question can be phrased in innumerable ways. How do you accurately interpret what the essential question is?
+
+For short answer tests, a given question can be answered correctly in innumerable ways as well. Like with voice assistants, the quality of the response in terms of grammer, spelling, typos and word choice are extreamly variable.
+What makes the short answer grading possibly more challenging than large scale intelligent assistants is that each individual test might have very limited responses and may not be in use for that long. 
+
+Because short answer tests are very tedious to grade, the success in automating related areas such as identifying plagiarism and essay grading has led to renewed efforts to attach this area. The problem is challenging because of the need to focus on identifying correctness in relatively short answers. Longer answers and essays require a broader set of criteria like grammar, ideas, structure and therefore provide more features for machine learning to work with.
+
+If we had enough short answer test results graded by a human for a particular test, it would be relatively easy to model and grade a short answer test. Unfortunately, exhaustive student answer datasets rarely exist in the real world for a specific short answer test. The reality is that tests generally have to be refreshed regularly to reflect constantly changing content and, in some cases, to prevent unwanted distribution and cheating. 
+
+**1.**  Some of the Challenges of Grading Short Answer include:
+  *	Teachers usually find the task of assessing respondents’ answers very time-consuming.
+  *	Students may have to wait for a long time to receive feedback on their responses 
+  * When they finally get it, the grade can be different from another classmate’s, who has given a very similar answer. *2
+
+**2.** The challenges of grading Short-Answer compared to essays are: 
+  * Response length. Responses in SAS tasks are typically shorter. For example, while the ASAP-AES data contains essays that average between about 100 and 600 to-kens (Shermis, 2014), short answer scoring datasets may have average answer lengths of just several words (Basu et al., 2013) to al-most 60 words (Shermis, 2015).
+  * Rubrics focus on content only in SAS vs. broader writing quality in AES.
+  * Purpose and genre. AES tasks cover persuasive, narrative, and source-dependent reading comprehension and English Language Arts (ELA), while SAS tasks tend to be from science, math, and ELA reading comprehension. *3
+
+**3.** Defining correct:
+* From my analysis, I believe one of the most difficult challenges is defining what correct actually means. There is no absolute measure of correctness for this kind of test, rather, we can only look at how human graders make the judgement. Human graders tend to look for key words and pattern matching rather than the specific order of words when grading large numbers of questions. 
+  * The number of correctly used words has more influence on marks than semantics or order of words. 
+  * If a large number of responses are being graded, it is not unreasonable that a human would move towards pattern recognition via key words rather than “reading for meaning”. 
+  * Identifying words gives an idea about grades and students misunderstanding to teachers. Such an approach allows time saving for scoring, and to provide rapid feedback to students by checking the words used from model vocabulary. *1
+
+The ideal case would be a solution that can use a subset of answers by the first batch of students that are manually graded to then automatically grade subsequent tests with the same questions.
+The goal of this project is to test that approach on some datasets with baseline results in academia to gain a better understanding of the problem and the build a baseline of code to iterate on better solutions.
+
+A complete solution is not the only valuable outcome. Machine learning can still add a lot of value today. While complete grading may not be possible, automation of some of the answers allowing the grader to focus on a smaller supset could also be a win. 
+This exercise may also help design short answer tests to make them easer to automatically grade. For example, a recent paper recommended that it be used to supplement the quality, provide automation in some areas of grading and help target areas where more human involvement is needed. *1
+
+This project originated from my interest in both memomry and how memory impact learning. We employ two types of memory while learning: recognition and recall. 
+A multiple choice test involves a larger percentage of recognition as the answer is provided and the correct one will be recognized. Short answer on the other hand requires a more intense form of memory where with no prompt an answer must be recalled.
+This second form of question is often easer to write but much harder to grade. It's easier to write because random but possibly related answers must be generated. 
+
+#### Overview ####
+
+The goal of this project is to build the tools and models necessary to demonstrate the capabilities of various apporaches of machine learning to grade short answers. 
+The first step is to identify literature that show the current state of the art in solving this problem. This includes identifying baseline models and datasets from which we can validate the code developed in this project are valid and reproduce the results from the literature.
+
+In addition to implementing the models and utilities to load and process the test data, we also want to deploy the solution in Sagemaker so we can leverage the power of cloud computing and Hypertuning to see if we can imporove on the results of the literature.
+The primary reference models used were based on an deep learning approch used in the Reordan paper (*1) cited above. 
+
+Reordan was basically an LSTM model with an embedding layer. The embedding layer accepts encoded english sentences and then converts them to word vectors that improve the representation of the words for machine learning solutions.
+The use of the LSTM model leverages the fact that sentences have sequential wording and order of words helps interpret the meaning. 
+
+After completing all the testing with a deep learning approach, a more simple XGBoost approach is tested and tuned with the same data to see if the LSTM approach was significantly better.
+
+To cover a variety of short answer data challenges, two different dataset were chosen from different research papers:
+
+1.	SciEntsBank (SEB) dataset. The dataset consists of science assessment questions with 2-way labels (correct/incorrect). *3 (Reordan) 
+
+2.	Short Answer Grading (SAG): These assignments/exams were assigned to an introductory computer science class at the University of North Texas and werecollected via an online learning environment.  
+*1 (Suzen)
+
+#### Reference ####
+
+*  **1** Suzen, Neslihan & Gorban, Alexander & Levesley, Jeremy & Mirkes, Evgeny. (2019). Automatic Short Answer Grading and Feedback Using Text Mining Methods. Page 1, 19.
+
+*  **2** Galhardi, Lucas & Brancher, Jacques. (2018). Machine Learning Approach for Automatic Short Answer Grading: A Systematic Review: 16th Ibero-American Conference on AI, Trujillo, Peru, November 13-16, 2018, Proceedings. 10.1007/978-3-030-03928-8_31. Page 380
+
+*  **3** Brian Riordan, Andrea Horbach, Aoife Cahill, Torsten Zesch, and Chong Min Lee. 2017. Investigating neural architectures for short answer scoring. In Proceedings of the 12th Workshop on Innovative Use of NLP for Building Educational Applications. pages 159–168. Page 159
 
 ### Problem Statement
-In this section, you will want to clearly define the problem that you are trying to solve, including the strategy (outline of tasks) you will use to achieve the desired solution. You should also thoroughly discuss what the intended solution will be for this problem. Questions to ask yourself when writing this section:
-- _Is the problem statement clearly defined? Will the reader understand what you are expecting to solve?_
-- _Have you thoroughly discussed how you will attempt to solve the problem?_
-- _Is an anticipated solution clearly defined? Will the reader understand what results you are looking for?_
+
+#### Goal ####
+Create a machine learning model and the supporting code to perform grading of an arbitrary short answer test given a limited set of actual test results. 
+
+For this project I will focus on reproducing some results from the literature and implementing an approach with Sagemaker and a custom Sklearn deep learnign LSTM model.
+For comparison a basic XGBoost model will also be tested with the same data. 
+
+The problem will be broken into two pieces. 
+
+First, I will try to replicate the results from the Riordan (*3) paper referenced above using Sagemaker with hypertuning and a basic LSTM model. 
+The paper described several additional layers and techniques in addition to basic LSTM.  They identify improvements to a basic model such as pretrained turned embedding and an attention layer may. 
+
+The desired outcome is to achive the most accurate prediction of correct or incorrect for the student answers. 
+The current state of the art from the Reordan paper achieves results with around 75% accurancy for the data sets used in the project.
+Ideally this bench mark can be matched or exceeded.
+
+#### Approach ####
+
+Once the models are built and tested with the relatively small SEB data set, the entire set of tests are repeated with a larger more complex data, SAG2, which consists of 88 computer science questions. 
+This data set was referened in the earlier Suzen paper (*2) which focused on text mining approaches to grading. This dataset was substantially larger and exhibited a wider set of the challenges to short answer grading.
+Restuls from this combined with the SEB     
+
+*Data Pre-Processing*: The first non-trivial task was to preprocess the raw datasets some of which are XML based and generate encoded train and test input datafiles.
+On of the goals of the encondining was to build in the ability to decode the results once broken up and randomized into train and test sets. 
+This decoding helps to better understand and visualize the challenges with some of the answers as compared to others. 
+
+*Modeling*: The next step was building and training code for the LSTM XGBoost models were created.
+A version for local testing was done first and then translated to work on SageMaker with Jupyter for Hypertuning. The LSTM models required custom coding to work in SageMaker.
+ 
+*Tuning and Variations*: In addition, some variations and adjustments to the model were tested. These variations were docented in the Reordan paper as having varying impacts on success. 
+The key ones tested in this project are:
+* Pretrained v.s. Generated embeddings. 
+  * For pretrained you can download datasets of embedding word vectors that reflect the relationshiop between words based on a much larger dataset.
+  * Genreated embedding are specific to the current dataset and may have a more limited value for a small dataset.
+* LSTM layers and tunning
+* Dropout layers and flatening layers to reduce overfitting or improve fitting in general.
+
+*Analysis and Results* The results of the various datasets, model approaches and tunning are analyzed and documented.
 
 ### Metrics
-In this section, you will need to clearly define the metrics or calculations you will use to measure performance of a model or result in your project. These calculations and metrics should be justified based on the characteristics of the problem and problem domain. Questions to ask yourself when writing this section:
-- _Are the metrics you’ve chosen to measure the performance of your models clearly discussed and defined?_
-- _Have you provided reasonable justification for the metrics chosen based on the problem and solution?_
+This is a basic binary classification problem so the metrics are pretty straight forward. We are looking for accuracy. In addition recall and precision are relevant as they help indeify the common case of predicting mostly correct or incorrect. 
+We saw this often when models failed to converge on a solution. Also, for short answer grading, there is some preference for precision over recall because it's better to err on the side of incorect which can then be manually graded to imporve a score. 
+This is always preferrable to reducing a students grade.
 
+The key metrics are:
+
+* True Positives - np.logical_and(test_labels, test_preds).sum()
+* False Positives - np.logical_and(1 - test_labels, test_preds).sum()
+* True Negatives - np.logical_and(1 - test_labels, 1 - test_preds).sum()
+* False Negatives - np.logical_and(test_labels, 1 - test_preds).sum()
+* Recal -  tp / (tp + fn)
+* Precision - tp / (tp + fp)
+* Accuracy - (tp + tn) / (tp + fp + tn + fn)
 
 ## II. Analysis
+![](https://gyazo.com/eb5c5741b6a9a16c692170a41a49c858.png)
+
 _(approx. 2-4 pages)_
 
 ### Data Exploration
+
+The datasets used for testing include two data primary sources. These are located in the /data/source_data directory.
+
+**1**.	**SciEntsBank** (SEB) dataset. This data was taken from Dzikovska et al., 2012.  The SciEntsBank (SEB) dataset consists of science assessment questions and I will work the set with 2-way labels (correct/incorrect). *3 (Reordan)
+  * The data is stored in XML format, one file for each of four questions.
+  * Each file includes the questions text, correct answer text and a list of graded answers (correct/incorrect)
+  * To make processing easier:
+    * **question data** (question_id (0..3), question text, reference answer) were combined into a single file, **questions.csv**
+    * **answer data** (question_id, answer text, score - 0/1)  were combined into a single file, **answers.csv**
+  
+  * Example Question Data
+    * **Question:** Carrie wanted to find out which was harder, a penny or a nickel, so she did a scratch test. How would this tell her which is harder?
+        * **Reference Response**: The harder coin will scratch the other.
+        * **Correct**: The one that is harder will scratch the less harder one.
+        * **incorrect**: She could tell which is harder by getting a rock and seeing if the penny or nickel would scratch it. Whichever one does is harder.
+
+    * **Question:** A solution is a type of mixture. What makes it different from other mixtures?
+        * **Reference Response**: A solution is a mixture formed when a solid dissolves in a liquid.
+        * **Correct**: It dissolves the solid into a liquid that is see through
+        * **incorrect**: A solution is a different type of mixture. Then they are a solution is a mixtures that dissolves.    
+
+
+**2**. **Short Answer Grading**: University of North Texas short answer grading data set. 
+These assignments/exams were assigned to an introductory computer science class. 
+The student answers were collected via an online learning environment. 
+The data set as a whole contains 80 questions and 2273 student answers. 
+The answers were scored by two human judges, using marks between 0 (completely incorrect) and 5 (perfect answer). 
+Data set creators treated the average grade of the two evaluators as the gold standard to examine the automatic scoring task. *1 (Suzen)
+
+  * The data set is stored in a very complex to process format of multiple text files and sub-directories. 
+  * Multiple versions of the same data is available in aggregated and file per question formats.
+  * Score were not aggregated into a single file and had to be aggregated using a script.
+  * The files used for this project were:
+    * **Questions** - *ShortAnswerGrading_v2.0/data/sent/questions* in the format of questions_id  and question text seperated by a space
+    * **Reference Answers** - *ShortAnswerGrading_v2.0/data/sent/answers* in the format question_id and answer text (spaced)
+    * **Student Answers** -  *ShortAnswerGrading_v2.0/data/sent/all* in the format question_id and answer text (spaced)
+    * **Files** - *ShortAnswerGrading_v2.0/data/docs/files*. A single list of question_ids/filenames which identify the directories for scores by question_id.
+    * **Scores** - Using the Files list, all scores were concatenated in order from the files located in *ShortAnswerGrading_v2.0/data/scores/<question_id>/ave where question_id was taken from the files list.
+    
+  * To make subsequent processing easier
+    * **question data** (question_id, question, reference answer) were combined into a single csv file, **questions.csv**
+    * **answer_data** (question_id,answer, score) were combined into a single csv file, **answers.csv**  
+  * The simplified questions.csv and answers.csv are stored in */data/seb* and */data/sag2* respectively. 
+
+ * Example Question Data
+    * **Question:** Carrie wanted to find out which was harder, a penny or a nickel, so she did a scratch test. How would this tell her which is harder?
+        * **Reference Response**: The harder coin will scratch the other.
+        * **Correct**: The one that is harder will scratch the less harder one.
+        * **incorrect**: She could tell which is harder by getting a rock and seeing if the penny or nickel would scratch it. Whichever one does is harder.
+
+    * **Question:** A solution is a type of mixture. What makes it different from other mixtures?
+        * **Reference Response**: A solution is a mixture formed when a solid dissolves in a liquid.
+        * **Correct**: It dissolves the solid into a liquid that is see through
+        * **incorrect**: A solution is a different type of mixture. Then they are a solution is a mixtures that dissolves.    
+
+
 In this section, you will be expected to analyze the data you are using for the problem. This data can either be in the form of a dataset (or datasets), input data (or input files), or even an environment. The type of data should be thoroughly described and, if possible, have basic statistics and information presented (such as discussion of input features or defining characteristics about the input or environment). Any abnormalities or interesting qualities about the data that may need to be addressed have been identified (such as features that need to be transformed or the possibility of outliers). Questions to ask yourself when writing this section:
 - _If a dataset is present for this problem, have you thoroughly discussed certain features about the dataset? Has a data sample been provided to the reader?_
 - _If a dataset is present for this problem, are statistics about the dataset calculated and reported? Have any relevant results from this calculation been discussed?_

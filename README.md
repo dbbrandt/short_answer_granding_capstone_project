@@ -6,7 +6,14 @@ The first step was to replicate results of a deep learning LSTM approach with em
 The results show moderate but limited success and the challenges of deep learning in this domain. Most reaults are in the range of 70-75% accuracy.
 
 This project also implements these approaches in the Sagemaker enviornment and uses Hypertuning to see if the results can be improved.
-Finally the results are compared to a simpler XGBoost approach. Because of the inherrent limitation of short answer training data it was not too surprising that XGBoost matched or outperformed the Deep Learning approach with LSTM.
+Finally the results are compared to a simpler XGBoost approach. The results were basically the same as the LSTM approach. 
+Because of the inherrent limitation of short answer training data this result wsa not entirely surprising. 
+That is to say the results of neither apporach is adequate to automate short answer grading.
+
+Suggested future testing could focus on identifying the kinds of questions and answers that perform better by analyzing the results on a question basis.
+Thests should be done with more predecitable short answer questions without typos and spelling issues.
+If possible an algorithm to correct spelling could be added to the data preprocessing to make the pretrained embedding more useful.
+It is also possible that the results could be used to identify questions that can be autograded while flaging questions or specific answers for human grading if they fall in a range of probabilities that are not as conclusive.
 
 Summary of tests:
   * LSTM with generated embedding
