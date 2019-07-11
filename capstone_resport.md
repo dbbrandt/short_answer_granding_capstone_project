@@ -332,10 +332,10 @@ Hypertuning Parameters:
 
 ### Benchmark
 
-The benchmark for this project was well documented in the Reordan paper for a variety of datasets they used. 
-In this section, you will need to provide a clearly defined benchmark result or threshold for comparing across performances obtained by your solution. The reasoning behind the benchmark (in the case where it is not an established result) should be discussed. Questions to ask yourself when writing this section:
-- _Has some result or value been provided that acts as a benchmark for measuring performance?_
-- _Is it clear how this result or value was obtained (whether by data or by hypothesis)?_
+The benchmark for this project was well documented in the Reordan paper for a variety of datasets they used. The table provided below include two datasets they tested with both 2 and 5 way grading. They also have their benchmark and the resutls of all the variations of modeling they used.
+The net results all fell in the range of 70-75% acurancy which is the target accuracy this project used as a bench mark. The highlighed section in yellow is the first of two datasets tested in this project referred to here as SEB. 
+
+![](https://github.com/dbbrandt/short_answer_granding_capstone_project/blob/master/data/results/Benchmark-SEB-2Way-Riordan.png?raw=true)
 
 
 ## III. Methodology
