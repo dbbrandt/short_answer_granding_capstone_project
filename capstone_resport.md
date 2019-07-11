@@ -259,7 +259,13 @@ In this section, you will need to provide some form of visualization that summar
 
 *Data Pre-Processing*: The first non-trivial task was to preprocess the raw datasets some of which are XML based and generate encoded train and test input datafiles.
 On of the goals of the encondining was to build in the ability to decode the results once broken up and randomized into train and test sets. 
-This decoding helps to better understand and visualize the challenges with some of the answers as compared to others. 
+This decoding helps to better understand and visualize the challenges with some of the answers as compared to others. For that, the question_id
+is added to the embedding vector for the answer. While not explored here, include a feature for which question an answer relates too could help identify similar answers. In practice, the answers are so varied, 
+it is unlikely this one integer in a long embedding vector will have any impact. It value is in analyzing the results by making it easy to compare correct and incorrectly predicted ansewrs to the correct answer to see
+if any patterns emerge to what is predictable. Most of the data processing code is found in */source/utils.py*. A lot of methods are in this one file and it would make sense to break them out into fiels specific to the two data sources and another for modeling. That was not yet done at the time of this writing.
+
+To simplify working in the AWS Sagemaker enviroment, the generation of test.csv and train.csv was done during local testing and the committed to Github for use
+in the Sagemaker Jupyter notebooks. It would be simple add calls to the methods in /source/utils.py to make the Jupyter notebooks fully self contained. It was not done at the time of this writing.
 
 *Modeling*: The next step is to building the model and training code for the LSTM and XGBoost models.
 A version for local testing was done first and then translated to work on SageMaker with Jupyter for Hypertuning. 
@@ -268,32 +274,65 @@ A version for local testing was done first and then translated to work on SageMa
 The basic framework for the LSTM deep learning model comes from the Reordan (*3) paper. They tested a number of variations some of which were not effective. For eaxample they added a convolution layer after an embedding layer 
 but found it of limited value so it was not tested here.
 
-*Tuning and Variations*: In addition, some variations and adjustments to the model were tested. These variations were docented in the Reordan paper as having varying impacts on success. 
+The basic model use here consists of:
+* An embedding layer that process the encoded sentences and produces word vectors for each word in the vocabulary.
+    * After testing the generated embeddings some effort was also put into use pretrained embeddings from Glove data file with 50 dimensions (data/glove/glove.6B.50d.txt).
+    * This required deriving a dictionary from the Glove file by selecting the words from answer dictorionary  and using the glove id's to lookup the embedding_matrix and creating a custom_embedding_matrix for our dictionary.
+    * The pretrained custom embedding matrix was used to preload the embedding layer. The code for this can be found in */source/glove.py*.
+    * One challenge to note is that mispellning and words or garbage input was not found in the glove database and 0's were used insetead. This represented about 18% of the words. Not insignificant portion.
+    * Not in the scope of this project was to correct misspelled or concatenated words to reduce the glove databases misses. It is outside of the scope of this project to test these complex cleanup approaches.  
+* An LSTM layer with one or more sub-layers to model more complexity.
+* Dropout layers to help tuning and beter managing overfitting. This proved quite valuable when dealing with problems of models converging at all. This would reqire overfitting and then dropout increases to make the test predictions more accurate.
+* Activation layer and Objective. Linear activation rather than sofmax/binary_crossentropy as might be expected becuase it was describes as the more successful approach in Reordan. This was validated with some initial tests. It also has the benefit of giving more visability into the probabilities.
+I should be noted that for XGBoost, binary:hinge truned out to be the best approach. This suggests that using linear may be a symptom of the overall poor results obtained for this problem set using deep learning methods.
+
+The figure below is visualization of the model approach. 
+
+![](https://github.com/dbbrandt/short_answer_granding_capstone_project/blob/master/data/results/Basic%20LSTM%20Model%20Diagram.png?raw=true)
+
+
+*Tuning Parameters and Variations*: In addition to the basic model above, some variations and adjustments to the model are tested. These variations were documented in the Reordan paper as having potentially meaningful impacts on success. 
 The key ones tested in this project are:
 * Pretrained v.s. Generated embeddings. 
-  * For pretrained you can download datasets of embedding word vectors that reflect the relationshiop between words based on a much larger dataset.
-  * Genreated embedding are specific to the current dataset and may have a more limited value for a small dataset.
-* LSTM layers and tunning
-* Dropout layers and flatening layers to reduce overfitting or improve fitting in general.
+* Flatening and Shaping (Yes or No). These layers can reduce overfitting or improve fitting in general. The complex embedding layer which is 2D for each entry can be flattened. This suggestion was found while researching embedding layers and a case was made it could help.
+* LSTM layers and layer sizes. One or two layers of varying sizes.
+* Dropout layers: Two drop out layers after embedding and LSTM with variable dropout percentages. 
 
+**Sagemaker and Keras LSTM**
 
 The LSTM models required custom coding to work in SageMaker. For ease of local testing I chose to use as Keras Sequential model which uses Tensorflow as the engine.
 While it was quite straight forward to do this locally, quite a bit of research and trail and error were required to get the custom model working in Sagemaker. Additional work was also needed
 to capture the necessary metrics from the training jobs for use by the Hypertuning process. This work while ultimately no a lot of code was non-trival. The resuls provide a useful framework for future
 testing and an easy path to move quickly developed Keras models from local to Sagemaker implementations. 
 
-These can be found in the codebase **/source/train.py**  and the Jupyter files,**Capstone 1 SEB.ipynb**,  **Capstone 2 SAG.ipynb** for the two data sets.
- 
- 
+#### XGBoost ####
 
-*Analysis and Results* The results of the various datasets, model approaches and tunning are analyzed and documented.
+As a comparison and sanity check, XGBoost was run on the same train.csv and test.csv files used with LSTM. The usual tunning parementers were used to best optimize the model for the short answer data.
+The initial values were selected from similar examples used in sentiment analysis in the course. After some manual tuning locally the ranges for hypertuning were selected and then adjusted after the first runs.
 
-In this section, you will need to discuss the algorithms and techniques you intend to use for solving the problem. You should justify the use of each one based on the characteristics of the problem and the problem domain. Questions to ask yourself when writing this section:
-- _Are the algorithms you will use, including any default variables/parameters in the project clearly defined?_
-- _Are the techniques to be used thoroughly discussed and justified?_
-- _Is it made clear how the input data or datasets will be handled by the algorithms and techniques chosen?_
+Estimator Parameters:
+
+        max_depth=5
+        eta=0.2
+        gamma=4
+        min_child_weight=6
+        subsample=0.8
+        objective='binary:logistic'
+        early_stopping_rounds=50
+        num_round=4000
+ 
+Hypertuning Parameters:
+
+        'max_depth': IntegerParameter(3, 12)
+        'eta'      : ContinuousParameter(0.05, 0.5)
+        'min_child_weight': IntegerParameter(2, 8)
+        'subsample': ContinuousParameter(0.5, 0.9)
+        'gamma': ContinuousParameter(0, 10)
+
 
 ### Benchmark
+
+The benchmark for this project was well documented in the Reordan paper for a variety of datasets they used. 
 In this section, you will need to provide a clearly defined benchmark result or threshold for comparing across performances obtained by your solution. The reasoning behind the benchmark (in the case where it is not an established result) should be discussed. Questions to ask yourself when writing this section:
 - _Has some result or value been provided that acts as a benchmark for measuring performance?_
 - _Is it clear how this result or value was obtained (whether by data or by hypothesis)?_
@@ -309,6 +348,23 @@ In this section, all of your preprocessing steps will need to be clearly documen
 - _If no preprocessing is needed, has it been made clear why?_
 
 ### Implementation
+
+These can be found in the codebase **/source/train.py**  and the Jupyter files,**Capstone 1 SEB.ipynb**,  **Capstone 2 SAG.ipynb** for the two data sets.
+
+The **local mode** code as well as the Sagemaker code passes in the tuning parameters as a dictionary into the common shared code. In the case of local processing, the common shared method from */source/utils*  named *train_and_test()*. 
+This method build the model, fits the data and then uses the test data with a predictor to evaluate the model accuracy. The tunning parameters passed into that method are:
+
+
+    model_params = {'max_answer_len': max_answer_len,
+                    'vocab_size': vocab_size,
+                    'epochs': 20,
+                    'pretrained': pretrained,
+                    'embedding_dim': 50,
+                    'flatten': True,
+                    'lstm_dim_1': 100,
+                    'lstm_dim_2': 20,
+                    'dropout': 0.3} 
+
 In this section, the process for which metrics, algorithms, and techniques that you implemented for the given data will need to be clearly documented. It should be abundantly clear how the implementation was carried out, and discussion should be made regarding any complications that occurred during this process. Questions to ask yourself when writing this section:
 - _Is it made clear how the algorithms and techniques were implemented with the given datasets or input data?_
 - _Were there any complications with the original metrics or techniques that required changing prior to acquiring a solution?_
