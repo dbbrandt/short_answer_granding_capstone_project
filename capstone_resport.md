@@ -95,26 +95,13 @@ Ideally this bench mark can be matched or exceeded.
 
 #### Approach ####
 
-Once the models are built and tested with the relatively small SEB data set, the entire set of tests are repeated with a larger more complex data, SAG2, which consists of 88 computer science questions. 
-This data set was referened in the earlier Suzen paper (*2) which focused on text mining approaches to grading. This dataset was substantially larger and exhibited a wider set of the challenges to short answer grading.
-Restuls from this combined with the SEB     
+Once the two types of models are built, tuned and tested with the relatively small SEB data set of 4 questions, 
+the same models and tuning will be applied to an entirely different and larger data set, Sag2, which consists of 88 computer science questions and about 2500 answers. 
 
-*Data Pre-Processing*: The first non-trivial task was to preprocess the raw datasets some of which are XML based and generate encoded train and test input datafiles.
-On of the goals of the encondining was to build in the ability to decode the results once broken up and randomized into train and test sets. 
-This decoding helps to better understand and visualize the challenges with some of the answers as compared to others. 
+The approach is to recreate the basic model variation from the Riordan paper which leverages LSTM to see the results for the SEB data. 
+LSTM make sense here because the order and intent of the words is important and language based datasets are often well handled by adding memory to the model. 
 
-*Modeling*: The next step was building and training code for the LSTM XGBoost models were created.
-A version for local testing was done first and then translated to work on SageMaker with Jupyter for Hypertuning. The LSTM models required custom coding to work in SageMaker.
- 
-*Tuning and Variations*: In addition, some variations and adjustments to the model were tested. These variations were docented in the Reordan paper as having varying impacts on success. 
-The key ones tested in this project are:
-* Pretrained v.s. Generated embeddings. 
-  * For pretrained you can download datasets of embedding word vectors that reflect the relationshiop between words based on a much larger dataset.
-  * Genreated embedding are specific to the current dataset and may have a more limited value for a small dataset.
-* LSTM layers and tunning
-* Dropout layers and flatening layers to reduce overfitting or improve fitting in general.
-
-*Analysis and Results* The results of the various datasets, model approaches and tunning are analyzed and documented.
+The paper also suggestes a variety of adjustments to the model such as pretrained embedding that will be experiment with to see if they improve the results.
 
 ### Metrics
 This is a basic binary classification problem so the metrics are pretty straight forward. We are looking for accuracy. In addition recall and precision are relevant as they help indeify the common case of predicting mostly correct or incorrect. 
@@ -134,18 +121,17 @@ The key metrics are:
 ___
 
 ## II. Analysis
-![](https://gyazo.com/eb5c5741b6a9a16c692170a41a49c858.png)
-
-_(approx. 2-4 pages)_
 
 ### Data Exploration
 
-The datasets used for testing include two data primary sources. These are located in the /data/source_data directory.
+The datasets used for testing include two primary data sources. These are located in the /data/source_data directory.
 
 ---
 
 **1**.	**SciEntsBank** (SEB) dataset. This data was taken from Dzikovska et al., 2012.  The SciEntsBank (SEB) dataset consists of science assessment questions and I will work the set with 2-way labels (correct/incorrect). *3 (Reordan)
   * The data is stored in XML format, one file for each of four questions.
+  * There are 4 files representing 4 questions. Each question has approximately 30 to 40 answers.
+  * The ratio of correct to total is 37.5%. This indicates that the majority of the students did very poorly. Examining the data shows some very confused respones. 
   * Each file includes the questions text, correct answer text and a list of graded answers (correct/incorrect)
   * To make processing easier:
     * **question data** (question_id (0..3), question text, reference answer) were combined into a single file, **questions.csv**
@@ -156,11 +142,13 @@ The datasets used for testing include two data primary sources. These are locate
         * **Reference Response**: The harder coin will scratch the other.
         * **Correct**: The one that is harder will scratch the less harder one.
         * **incorrect**: She could tell which is harder by getting a rock and seeing if the penny or nickel would scratch it. Whichever one does is harder.
+        * **incorrect**: Rub them against a crystal.
 
     * **Question:** (id=2) A solution is a type of mixture. What makes it different from other mixtures?
         * **Reference Response**: A solution is a mixture formed when a solid dissolves in a liquid.
         * **Correct**: It dissolves the solid into a liquid that is see through
-        * **incorrect**: A solution is a different type of mixture. Then they are a solution is a mixtures that dissolves.    
+        * **incorrect**: A solution is a different type of mixture. Then they are a solution is a mixtures that dissolves.
+        * **incorrect**: When the mixture is mixed.    
 
 ---
 
@@ -229,12 +217,77 @@ In this section, you will be expected to analyze the data you are using for the 
 - _Are there any abnormalities or characteristics about the input space or dataset that need to be addressed? (categorical variables, missing values, outliers, etc.)_
 
 ### Exploratory Visualization
+
+The data used in this project has been well vetted as a good use case for short answer grading in the papers cited at the top of this report.
+
+The feature or features used are essentiall the encoded representation of strings that were provided as answers. This enconding is achieved by creating a word dictionary and assigning the index from the dictionary to the word.
+The feature is then a list of integers representing the words.  The dictionary size for the small Seb dataset is about 265 words. While the dictionary size for the large Sag2 dataset is about 2650 words.
+
+What is most import to visualize is the grading of the answers. If for example 95% of the answers were correct or incorrect, we whould need to consider this a unbalanced dataset and adjust for that. 
+The visualization show that the data, while not exactly balanced, has a signifiant result set for both correct and incorrect. In both cases is a 2/3 to 1/3 ratio, For the seb dataset, that ratio is in favor of incorrect while for Sag2 in favor of corret.
+
+The Sag data include one addition complexity with respect to grading. The raw answers were scored on a range of 0-5 and were an average of two graders. The restult are scores from 0 to 5 in increments of .25.
+The final decision on how to convert that to a binary representaion of correct and incorrect was somewhat sugjective. One of the major considerations was to balance the data. The lower the correct cutoff chosen was, the smaller the fraction of incorect answers would be. 
+There was, therefore, an argument for making this as high as possible while stil making sense from a usecase point of view. I ended up chosing a score of 4 as the cutoff. This translates to an 80% grade which seems reasonable for passing. 
+It is quite possible that additional analysis and testing with other cutoff, particulary with a wider range of test data sets, would require some more complex modeling and testing to determine decision criteria. This is out of scope for this project. 
+
+I have also included a distribution of answer lengths. This information is likely to play into the effectiveness of the model fitting. It has been documented in the research papers that shorter answers are more difficult to fit. 
+From the historgrams we can see that a majority of the answers for both datasets fall in the range of 50 to 100 words. This confirms the relatively short nature of the answers as compared to essay or even short essay type response for which other modeling technical have proven successful (see *3 Reordan )
+ 
+**1**.	**SciEntsBank**
+
+![](https://github.com/dbbrandt/short_answer_granding_capstone_project/blob/master/data/results/Seb-Correct-Incorrect-Histogram.png?raw=true)
+
+![](https://github.com/dbbrandt/short_answer_granding_capstone_project/blob/master/data/results/Seb-Answer-Length-Histogram.png?raw=true)
+
+**2**. **Short Answer Grading**
+
+![](https://github.com/dbbrandt/short_answer_granding_capstone_project/blob/master/data/results/Sag2-Correct-Incorrect-Histogram.png?raw=true)  
+
+![](https://github.com/dbbrandt/short_answer_granding_capstone_project/blob/master/data/results/Sag2-Answer-Length-Histogram.png?raw=true)
+
+![](https://github.com/dbbrandt/short_answer_granding_capstone_project/blob/master/data/results/Sag2-Answer-Raw-Score-Histogram.png?raw=true)
+
+Note: As mentioned, with this disrtribution of answers and the cutoff for correct wsa set at 4.0 resulting in about 1770 correct and 670 incorrect. 
+
 In this section, you will need to provide some form of visualization that summarizes or extracts a relevant characteristic or feature about the data. The visualization should adequately support the data being used. Discuss why this visualization was chosen and how it is relevant. Questions to ask yourself when writing this section:
 - _Have you visualized a relevant characteristic or feature about the dataset or input data?_
 - _Is the visualization thoroughly analyzed and discussed?_
 - _If a plot is provided, are the axes, title, and datum clearly defined?_
 
 ### Algorithms and Techniques
+
+*Data Pre-Processing*: The first non-trivial task was to preprocess the raw datasets some of which are XML based and generate encoded train and test input datafiles.
+On of the goals of the encondining was to build in the ability to decode the results once broken up and randomized into train and test sets. 
+This decoding helps to better understand and visualize the challenges with some of the answers as compared to others. 
+
+*Modeling*: The next step is to building the model and training code for the LSTM and XGBoost models.
+A version for local testing was done first and then translated to work on SageMaker with Jupyter for Hypertuning. 
+
+#### LSTM - Deep Learning ####
+The basic framework for the LSTM deep learning model comes from the Reordan (*3) paper. They tested a number of variations some of which were not effective. For eaxample they added a convolution layer after an embedding layer 
+but found it of limited value so it was not tested here.
+
+*Tuning and Variations*: In addition, some variations and adjustments to the model were tested. These variations were docented in the Reordan paper as having varying impacts on success. 
+The key ones tested in this project are:
+* Pretrained v.s. Generated embeddings. 
+  * For pretrained you can download datasets of embedding word vectors that reflect the relationshiop between words based on a much larger dataset.
+  * Genreated embedding are specific to the current dataset and may have a more limited value for a small dataset.
+* LSTM layers and tunning
+* Dropout layers and flatening layers to reduce overfitting or improve fitting in general.
+
+
+The LSTM models required custom coding to work in SageMaker. For ease of local testing I chose to use as Keras Sequential model which uses Tensorflow as the engine.
+While it was quite straight forward to do this locally, quite a bit of research and trail and error were required to get the custom model working in Sagemaker. Additional work was also needed
+to capture the necessary metrics from the training jobs for use by the Hypertuning process. This work while ultimately no a lot of code was non-trival. The resuls provide a useful framework for future
+testing and an easy path to move quickly developed Keras models from local to Sagemaker implementations. 
+
+These can be found in the codebase **/source/train.py**  and the Jupyter files,**Capstone 1 SEB.ipynb**,  **Capstone 2 SAG.ipynb** for the two data sets.
+ 
+ 
+
+*Analysis and Results* The results of the various datasets, model approaches and tunning are analyzed and documented.
+
 In this section, you will need to discuss the algorithms and techniques you intend to use for solving the problem. You should justify the use of each one based on the characteristics of the problem and the problem domain. Questions to ask yourself when writing this section:
 - _Are the algorithms you will use, including any default variables/parameters in the project clearly defined?_
 - _Are the techniques to be used thoroughly discussed and justified?_
