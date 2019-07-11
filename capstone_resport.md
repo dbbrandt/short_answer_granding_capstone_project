@@ -74,6 +74,8 @@ To cover a variety of short answer data challenges, two different dataset were c
 
 *  **3** Brian Riordan, Andrea Horbach, Aoife Cahill, Torsten Zesch, and Chong Min Lee. 2017. Investigating neural architectures for short answer scoring. In Proceedings of the 12th Workshop on Innovative Use of NLP for Building Educational Applications. pages 159–168. Page 159
 
+___
+
 ### Problem Statement
 
 #### Goal ####
@@ -129,6 +131,8 @@ The key metrics are:
 * Precision - tp / (tp + fp)
 * Accuracy - (tp + tn) / (tp + fp + tn + fn)
 
+___
+
 ## II. Analysis
 ![](https://gyazo.com/eb5c5741b6a9a16c692170a41a49c858.png)
 
@@ -138,6 +142,8 @@ _(approx. 2-4 pages)_
 
 The datasets used for testing include two data primary sources. These are located in the /data/source_data directory.
 
+---
+
 **1**.	**SciEntsBank** (SEB) dataset. This data was taken from Dzikovska et al., 2012.  The SciEntsBank (SEB) dataset consists of science assessment questions and I will work the set with 2-way labels (correct/incorrect). *3 (Reordan)
   * The data is stored in XML format, one file for each of four questions.
   * Each file includes the questions text, correct answer text and a list of graded answers (correct/incorrect)
@@ -146,27 +152,34 @@ The datasets used for testing include two data primary sources. These are locate
     * **answer data** (question_id, answer text, score - 0/1)  were combined into a single file, **answers.csv**
   
   * Example Question Data
-    * **Question:** Carrie wanted to find out which was harder, a penny or a nickel, so she did a scratch test. How would this tell her which is harder?
+    * **Question:** (id=0): Carrie wanted to find out which was harder, a penny or a nickel, so she did a scratch test. How would this tell her which is harder?
         * **Reference Response**: The harder coin will scratch the other.
         * **Correct**: The one that is harder will scratch the less harder one.
         * **incorrect**: She could tell which is harder by getting a rock and seeing if the penny or nickel would scratch it. Whichever one does is harder.
 
-    * **Question:** A solution is a type of mixture. What makes it different from other mixtures?
+    * **Question:** (id=2) A solution is a type of mixture. What makes it different from other mixtures?
         * **Reference Response**: A solution is a mixture formed when a solid dissolves in a liquid.
         * **Correct**: It dissolves the solid into a liquid that is see through
         * **incorrect**: A solution is a different type of mixture. Then they are a solution is a mixtures that dissolves.    
 
+---
 
 **2**. **Short Answer Grading**: University of North Texas short answer grading data set. 
 These assignments/exams were assigned to an introductory computer science class. 
 The student answers were collected via an online learning environment. 
-The data set as a whole contains 80 questions and 2273 student answers. 
 The answers were scored by two human judges, using marks between 0 (completely incorrect) and 5 (perfect answer). 
 Data set creators treated the average grade of the two evaluators as the gold standard to examine the automatic scoring task. *1 (Suzen)
 
+  * The data set as a whole cont ains 80 questions and 2242 student answers, or about 30 per question.
+  * The ratio of correct to total answers is about 71%. This makes sense as you would expect an average passing grade.
+  * While this is a sligh imbalance, testing results did not show a significant advantage to balancing the test data 50/50 correct/incorrect.
+  * Answer lengths varied between 1 and 950 words with the bulk in the 25 to 100 word range. 
   * The data set is stored in a very complex to process format of multiple text files and sub-directories. 
   * Multiple versions of the same data is available in aggregated and file per question formats.
   * Score were not aggregated into a single file and had to be aggregated using a script.
+  * Scores were in a range of 0 to 5 and were converted based on a qualitative decision as correct if >= 4. Another option would have been to chose 3, the midpoint as the cuttoff or any other value > 0.
+  The criteria for the decision would be ideally done by the question creator. Here the goal was to have a sufficient balance of correct and incorrect and try and filter out the more confusing answers which presumably have a lower score.
+  * The data has a number of text representations for punctuation that were removed for this exercise. ex. -LRB-, -RRB- and <STOP>
   * The files used for this project were:
     * **Questions** - *ShortAnswerGrading_v2.0/data/sent/questions* in the format of questions_id  and question text seperated by a space
     * **Reference Answers** - *ShortAnswerGrading_v2.0/data/sent/answers* in the format question_id and answer text (spaced)
@@ -179,17 +192,35 @@ Data set creators treated the average grade of the two evaluators as the gold st
     * **answer_data** (question_id,answer, score) were combined into a single csv file, **answers.csv**  
   * The simplified questions.csv and answers.csv are stored in */data/seb* and */data/sag2* respectively. 
 
- * Example Question Data
-    * **Question:** Carrie wanted to find out which was harder, a penny or a nickel, so she did a scratch test. How would this tell her which is harder?
-        * **Reference Response**: The harder coin will scratch the other.
-        * **Correct**: The one that is harder will scratch the less harder one.
-        * **incorrect**: She could tell which is harder by getting a rock and seeing if the penny or nickel would scratch it. Whichever one does is harder.
+    **Example Question Data**
+    * **Question:** (id=1.1) What is the role of a prototype program in problem solving?
+        * **Reference Response**: To simulate the behaviour of portions of the desired software product.
+        * **Correct**: you can break the whole program into prototype programs to simulate parts of the final program.
+        * **incorrect**: To lay out the basics and give you a starting point in the actual problem solving.
 
-    * **Question:** A solution is a type of mixture. What makes it different from other mixtures?
-        * **Reference Response**: A solution is a mixture formed when a solid dissolves in a liquid.
-        * **Correct**: It dissolves the solid into a liquid that is see through
-        * **incorrect**: A solution is a different type of mixture. Then they are a solution is a mixtures that dissolves.    
+    * **Question:** (id=5.1) In one sentence, what is the main idea implemented by insertion sort?
+        * **Reference Response**: Taking one array element at a time, from left to right, it inserts it in the right position among the already sorted elements on its left.
+        * **Correct**: insertion sort is were after k iterations the first k items in the array are sorted it take the k plus 1 item and inserts it into the correct position in the already sorted k elements.
+        * **incorrect**: Take a number and choose a pivot point and insert the number in the correct position from the pivot point.    
 
+    * **Question:** (id=7.2) What is the main advantage of linked lists over arrays
+        * **Reference Response**: The linked lists can be of variable length.
+        * **Correct**: Array size is fixed, but Linked is not fixed.
+        * **incorrect**: Linked lists have constant time insertion and deletion
+        * **incorrect**: There is no limit as to how many you create where an array can only hold a given amount of information.
+            * Note: This second incorrect answer is provided here because I would grade it as correct. This highlights the human error potential in grading which adds an additional random factor to the data.
+
+    * **Question:** (id=11.1) What are the elements typically included in a class definition?
+        * **Reference Response**: Function members and data members.
+        * **Correct**: data members and function definitions.
+        * **incorrect**: Class name,, semicoln at the end of the defination, private and bublic followed by :   
+
+    * **Question:** (id=12.10) How many steps does it take to search a node in a binary search tree?
+        * **Reference Response**: The height of the tree.
+        * **Correct**: to find a node in a binary search tree takes at most the same number of steps as there are levels of the tree.
+        * **incorrect**: it depends on the install search tree then from there for whatever the case is the it repeats it back along the case of the primary node.    
+
+---
 
 In this section, you will be expected to analyze the data you are using for the problem. This data can either be in the form of a dataset (or datasets), input data (or input files), or even an environment. The type of data should be thoroughly described and, if possible, have basic statistics and information presented (such as discussion of input features or defining characteristics about the input or environment). Any abnormalities or interesting qualities about the data that may need to be addressed have been identified (such as features that need to be transformed or the possibility of outliers). Questions to ask yourself when writing this section:
 - _If a dataset is present for this problem, have you thoroughly discussed certain features about the dataset? Has a data sample been provided to the reader?_
