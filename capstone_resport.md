@@ -234,6 +234,8 @@ It is quite possible that additional analysis and testing with other cutoff, par
 I have also included a distribution of answer lengths. This information is likely to play into the effectiveness of the model fitting. It has been documented in the research papers that shorter answers are more difficult to fit. 
 From the historgrams we can see that a majority of the answers for both datasets fall in the range of 50 to 100 words. This confirms the relatively short nature of the answers as compared to essay or even short essay type response for which other modeling technical have proven successful (see *3 Reordan )
  
+One final area that bears noting is the difficulty of the questions. This can be shown in a graph of the percentage correct of the answers by question from the result set. The chart shows that while the average is around 80% it varies widely between 20 and 100%. 
+This is likely to have an impact on the predictability of the data. This mean each questions data is significantly different in composition. 
 **1**.	**SciEntsBank**
 
 ![](https://github.com/dbbrandt/short_answer_granding_capstone_project/blob/master/data/results/Seb-Correct-Incorrect-Histogram.png?raw=true)
