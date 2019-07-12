@@ -420,8 +420,9 @@ def evaluate(predictor, test_features, test_labels, verbose=True):
         print("{:<11} {:.3f}".format('Accuracy:', accuracy))
         print()
 
-    return {'TP': tp, 'FP': fp, 'FN': fn, 'TN': tn,
-            'Precision': precision, 'Recall': recall, 'Accuracy': accuracy, 'Predictions': test_preds}
+    results = pd.concat([test_labels, test_preds], cols=['test_y', 'prediction'], axis='cols')
+
+    return {'TP': tp, 'FP': fp, 'FN': fn, 'TN': tn, 'Precision': precision, 'Recall': recall, 'Accuracy': accuracy }, results
 
 def print_results(results_df, show_correct=False):
 

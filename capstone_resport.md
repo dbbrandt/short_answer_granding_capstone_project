@@ -252,6 +252,11 @@ This is likely to have an impact on the predictability of the data. This mean ea
 
 Note: As mentioned, with this disrtribution of answers and the cutoff for correct wsa set at 4.0 resulting in about 1770 correct and 670 incorrect. 
 
+![](https://github.com/dbbrandt/short_answer_granding_capstone_project/blob/master/data/results/Sag-Answer-Correct-Percent-Distribution.png?raw=true)
+
+Note: The distribution of question difficulty is pretty even and wide, ranging from 20% to 100% answering correctly.
+
+
 In this section, you will need to provide some form of visualization that summarizes or extracts a relevant characteristic or feature about the data. The visualization should adequately support the data being used. Discuss why this visualization was chosen and how it is relevant. Questions to ask yourself when writing this section:
 - _Have you visualized a relevant characteristic or feature about the dataset or input data?_
 - _Is the visualization thoroughly analyzed and discussed?_
