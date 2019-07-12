@@ -459,9 +459,35 @@ In this section, all of your preprocessing steps will need to be clearly documen
 
 ### Implementation
 
+The implementation is based around driver python scripts that configure the hyper parameters and call methods in the */source/utils.py* script to load data and execute the model training and evaluation.
+
+All local LSTM models are based on SkLearn with Keras on top of Tensorflow. The Keras Sequential model is used to build the model layers.
+The local XBGoost uses XGBCLassifier which conforms to the SKLearn api.
+
+All Sagemaker models are based on SageMaker classes. The Keras/Tensorflow approach used Locally for LSTM is not diretly supported on SageMaker so we use a SageMaker Tensorflow class and call a custom train.py file (located in /source/train.py) which builds and trains the Keras LSTM model. This train.py also generates output that can be parsed by SageMaker to obtain the metrics needed for Hypertuning.    
+
+**Local Testing**
+Most of the initial testing was done locally on a laptop to debug and get initial tuning parameters. The goal was also to eliminate low performing configurations before using SageMaker to try Hypertuning. Each driver script file for local processing is setup for a dataset and and model type combination.   
+
+As much as possible all of the testing options were coded as options that could be passed in to the utilities to quickly test alternatives.
+The selection of dataset and model type are the only exception. Since the features and parameters that work for one data set and model may not work or be applicable to another, each are tested as a seperate work path with a seperate driver script.
+
+The scripts for SagemMaker testing are basically Jupyter Notebooks. All LSTM which 
+
+**Tests**
+
+1. SEB Data with LSTM (*seb_tf_train.py*)
+2. SEB Data with XGBoost (*seb_xgb_train.py*)
+3. SAG Data with LSTM (*sag_tf_train.py*)
+4. SAG Data with XGBoost (*sag_xgb_train.py*)
+5. SAG Data with XGBoost and added ngram features (*seb_ng_xgb_train.py*)
+
+*1 A theory was tested that adding some comparison of student answer to reference answer to the feature set might help the model. This is similar to sentiment analysis.
 
 The **local mode** code as well as the Sagemaker code passes in the tuning parameters as a dictionary into the common shared code. In the case of local processing, the common shared method from */source/utils*  named *train_and_test()*. 
-This method build the model, fits the data and then uses the test data with a predictor to evaluate the model accuracy. The tunning parameters passed into that method are:
+This method build the model, fits the data and then uses the test data with the model's predictor to evaluate the model accuracy. 
+
+The tunning parameters passed into that method are:
 
 
     model_params = {'max_answer_len': max_answer_len,
@@ -494,6 +520,43 @@ In this section, you will need to discuss the process of improvement you made up
 _(approx. 2-3 pages)_
 
 ### Model Evaluation and Validation
+
+
+**6.** SAG Data with XGBoost and added ngram features. 
+
+This leveraged the work previously done for sentiment analysis project
+The answer is compared to the reference answer to generate ngrams. For this test ng1 and ng2 were determined to be the most useful. However, these two were found to only correlation to correct vs. incorrect answers at about 20%. That means given a student answer, about 30% of the correct/incorrect grade is predicted by the ng1 or ng2. Also ng1 and ng2 have a 72% correlation to each other.  
+
+The results showed minimal gains over the encoded answers without ng1 and ng2. While not bad, **77.9%** was not sufficently better to warrant extensive testing of this approach at this time. I do believe that factoring in the reference answer compared to the student answer should add value but a different modeling approach may be needed to reap the advantages of these features.
+ 
+    Correlation between Ngrams and Correct. (20 - 30%)
+    Only 72%  correlated together.
+    corr_matrix = ngrams.corr().round(2)
+    display(corr_matrix)
+                 ng1             2       correct
+    ng1         1.00            0.72      0.29
+    ng2         0.72            1.00      0.23
+    correct     0.29            0.23      1.00
+ 
+ 
+    XGBClassifier(base_score=0.5, booster='gbtree', colsample_bylevel=1,
+                  colsample_bynode=1, colsample_bytree=1, gamma=1,
+                  learning_rate=0.01, max_delta_step=0, max_depth=4,
+                  min_child_weight=6, missing=None, n_estimators=10000, n_jobs=1,
+                  nthread=None, objective='binary:logistic', random_state=0,
+                  reg_alpha=0, reg_lambda=1, scale_pos_weight=1, seed=None,
+                  silent=None, subsample=0.8, verbosity=0)
+    Min preds: 0.0 max_preds: 1.0
+    
+    predictions   0.0  1.0
+    actuals
+    0.0           72  130
+    1.0           32  499
+
+    Recall:     0.940
+    Precision:  0.793
+    Accuracy:   0.779
+
 In this section, the final model and any supporting qualities should be evaluated in detail. It should be clear how the final model was derived and why this model was chosen. In addition, some type of analysis should be used to validate the robustness of this model and its solution, such as manipulating the input data or environment to see how the model’s solution is affected (this is called sensitivity analysis). Questions to ask yourself when writing this section:
 - _Is the final model reasonable and aligning with solution expectations? Are the final parameters of the model appropriate?_
 - _Has the final model been tested with various inputs to evaluate whether the model generalizes well to unseen data?_
@@ -511,6 +574,22 @@ In this section, your model’s final solution and its results should be compare
 _(approx. 1-2 pages)_
 
 ### Free-Form Visualization
+
+One of the concerns with modeling is the distirbution of data. Specifically the ratio of correct to incorrect which also can be though of as the relative difficlty of the tests for it's students. 
+Taken as a whole we showed that the 2/3 to 1/3 correct to incorrect did not seem to be a major factor in accuracy results.
+In fact the SEB dataset had the reverse percentages to the SAG dataset but the results for accuracy were about the same.
+
+The SAG dataset had many more questions, 87 vs. 4. This meant thatanalysis on a question level becomes possible and interesting. We have enough data to see if aspects of the questions impacted accuracy.
+Looking at the quality of predictions both from an accuracy and precision point of view shows a strong correlation between the difficulty of the question and the accuracy of the prediction.
+This could be interpreted as harder questions results in more random or inchorent answers which are harder to predict. This also impacts the quantity of correct results. When there are very few as compared to easier questions it's not surprising that predictability would differ with difficulty of the question. 
+
+
+**Percentage of correct v.s. incorrect by Question**
+
+The chart orders the question from lest percentage correct to most. This builds on the chart from the Exploritory Visualization section by adding predictions. 
+
+![](https://github.com/dbbrandt/short_answer_granding_capstone_project/blob/master/data/results/Sag2-Prediction-Correct-Incorrect-Histogram.png?raw=true)
+
 In this section, you will need to provide some form of visualization that emphasizes an important quality about the project. It is much more free-form, but should reasonably support a significant result or characteristic about the problem that you want to discuss. Questions to ask yourself when writing this section:
 - _Have you visualized a relevant or important quality about the problem, dataset, input data, or results?_
 - _Is the visualization thoroughly analyzed and discussed?_
