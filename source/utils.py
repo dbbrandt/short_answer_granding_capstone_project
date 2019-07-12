@@ -32,11 +32,17 @@ def get_glove():
     return glove
 
 def get_xml_elements(doc, tag):
+    ''' Helper method to extract the desired string value based on a tag from the SEB XML
+        Used by read_xml_qanda().
+    '''
     elements = doc.getElementsByTagName(tag)
     values = [e.firstChild for e in elements]
     return values, elements
 
 def read_xml_qanda(filename, id):
+    ''' SEB data specific method to extract key question and answer data
+        Used by the load_seb_data() function.
+    '''
     doc = minidom.parse(filename)
     values, elements = get_xml_elements(doc, 'questionText')
     question_text = values[0].data
@@ -159,12 +165,13 @@ def decode_predictions(X_test, y_test, vocabulary, prediction, questions_file):
 
 
 def generate_data(answer_df, pretrained=False, sample_size=1, question_id=None):
+    ''' Convert the provided asnwers into numerically encoded data'''
 
     if question_id:
-         max_length, encoded_answers, from_encoded = encode_answers(answer_df, pretrained, question_id,
+         max_length, encoded_answers, vocabulary = encode_answers(answer_df, pretrained, question_id,
                                                                                   answer_df[question_id])
     else:
-         max_length, encoded_answers, from_encoded = encode_answers(answer_df, pretrained, question_id,
+         max_length, encoded_answers, vocabulary = encode_answers(answer_df, pretrained, question_id,
                                                                                   answer_df[question_id])
 
     encoded_answer_df = pd.DataFrame(encoded_answers)
@@ -177,7 +184,7 @@ def generate_data(answer_df, pretrained=False, sample_size=1, question_id=None):
     randomized_labels = randomized_data[predictor_col].values[:max]
     randomized_answers = randomized_data.drop([predictor_col], axis=1).values[:max]
 
-    return randomized_answers, randomized_labels, max_length, from_encoded
+    return randomized_answers, randomized_labels, max_length, vocabulary
 
 
 def load_seb_data(pretrained=False, sample_size=1, verbose=False):
