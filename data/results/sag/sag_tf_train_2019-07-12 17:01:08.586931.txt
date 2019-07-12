@@ -1,0 +1,1 @@
+{'max_answer_len': 176, 'vocab_size': 2648, 'epochs': 20, 'pretrained': False, 'embedding_dim': 50, 'flatten': True, 'lstm_dim_1': 100, 'lstm_dim_2': 20, 'dropout': 0.3}{'TP': 459, 'FP': 96, 'FN': 72, 'TN': 106, 'Precision': 0.827027027027027, 'Recall': 0.864406779661017, 'Accuracy': 0.7708049113233287}

@@ -1,7 +1,7 @@
+import datetime
 from xml.dom import minidom
 import pandas as pd
 import numpy as np
-from nltk.stem.porter import *
 import re
 from bs4 import BeautifulSoup
 from numpy.random import seed
@@ -152,6 +152,9 @@ def decode_answers(encoded_answers, from_encoded, pretrained=False):
     return decoded_answers
 
 def decode_predictions(X_test, y_test, vocabulary, prediction, questions_file):
+    ''' Combine the prediction results with the original answer data
+        Return: Dataframe of human readable predictions and related string data
+    '''
     questions = pd.read_csv(questions_file, dtype={'id':str})
     decoded = decode_answers(X_test, vocabulary)
     results = []
@@ -374,13 +377,13 @@ def train_and_test(model_dir, model_file, model_params, X_train, y_train, X_test
         model = load_model(filename)
         print(model.summary())
 
-    eval = evaluate(model, X_test, y_test)
+    eval, results = evaluate(model, X_test, y_test)
 
     if verbose:
-        results_df = decode_predictions(X_test, y_test, vocabulary, eval['Predictions'], questions_file)
+        results_df = decode_predictions(X_test, y_test, vocabulary, results['pred'].values, questions_file)
         print_results(results_df)
 
-    return model
+    return eval, results
 
 def evaluate(predictor, test_features, test_labels, verbose=True):
     """
@@ -420,9 +423,14 @@ def evaluate(predictor, test_features, test_labels, verbose=True):
         print("{:<11} {:.3f}".format('Accuracy:', accuracy))
         print()
 
-    results = pd.concat([test_labels, test_preds], cols=['test_y', 'prediction'], axis='cols')
+    features_df = pd.DataFrame(test_features)
+    results_df = pd.DataFrame(features_df[0])
+    results_df['test_y'] = test_labels
+    results_df['predictions'] = test_preds
 
-    return {'TP': tp, 'FP': fp, 'FN': fn, 'TN': tn, 'Precision': precision, 'Recall': recall, 'Accuracy': accuracy }, results
+    results_df.columns = ['id','test_y', 'pred']
+
+    return {'TP': tp, 'FP': fp, 'FN': fn, 'TN': tn, 'Precision': precision, 'Recall': recall, 'Accuracy': accuracy }, results_df
 
 def print_results(results_df, show_correct=False):
 
@@ -438,3 +446,12 @@ def print_results(results_df, show_correct=False):
         print("id, question_id, prediction, correct, answer, correct_answer")
         for index, row in incorrect.iterrows():
             print(f'{row.test_id},{row.question_id},{row.prediction},{row.correct},"{row.answer}","{row.correct_answer}"')
+
+def save_results(filename, model_params, eval, results):
+    now = datetime.datetime.now()
+    results_file = open(f"{filename}_{now}.txt","w+")
+    results_file.write(str(model_params))
+    results_file.write(str(eval))
+    results_file.close()
+
+    results.to_csv(f"{filename}_pred_{now}.csv", index=False)
