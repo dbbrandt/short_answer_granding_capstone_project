@@ -317,26 +317,6 @@ testing and an easy path to move quickly developed Keras models from local to Sa
 As a comparison and sanity check, XGBoost was run on the same train.csv and test.csv files used with LSTM. The usual tunning parementers were used to best optimize the model for the short answer data.
 The initial values were selected from similar examples used in sentiment analysis in the course. After some manual tuning locally the ranges for hypertuning were selected and then adjusted after the first runs.
 
-Estimator Parameters:
-
-        max_depth=5
-        eta=0.2
-        gamma=4
-        min_child_weight=6
-        subsample=0.8
-        objective='binary:logistic'
-        early_stopping_rounds=50
-        num_round=4000
- 
-Hypertuning Parameters:
-
-        'max_depth': IntegerParameter(3, 12)
-        'eta'      : ContinuousParameter(0.05, 0.5)
-        'min_child_weight': IntegerParameter(2, 8)
-        'subsample': ContinuousParameter(0.5, 0.9)
-        'gamma': ContinuousParameter(0, 10)
-
-
 ### Benchmark
 
 The benchmark for this project was well documented in the Reordan paper for a variety of datasets they used. The table provided below include two datasets they tested with both 2 and 5 way grading. They also have their benchmark and the resutls of all the variations of modeling they used.
@@ -466,7 +446,7 @@ The local XBGoost uses XGBCLassifier which conforms to the SKLearn api.
 
 All Sagemaker models are based on SageMaker classes. The Keras/Tensorflow approach used Locally for LSTM is not diretly supported on SageMaker so we use a SageMaker Tensorflow class and call a custom train.py file (located in /source/train.py) which builds and trains the Keras LSTM model. This train.py also generates output that can be parsed by SageMaker to obtain the metrics needed for Hypertuning.    
 
-**Local Testing**
+#### Local Testing ####
 Most of the initial testing was done locally on a laptop to debug and get initial tuning parameters. The goal was also to eliminate low performing configurations before using SageMaker to try Hypertuning. Each driver script file for local processing is setup for a dataset and and model type combination.   
 
 As much as possible all of the testing options were coded as options that could be passed in to the utilities to quickly test alternatives.
@@ -474,7 +454,7 @@ The selection of dataset and model type are the only exception. Since the featur
 
 The scripts for SagemMaker testing are basically Jupyter Notebooks. All LSTM which 
 
-**Tests**
+**Local Tests**
 
 1. SEB Data with LSTM (*seb_tf_train.py*)
 2. SEB Data with XGBoost (*seb_xgb_train.py*)
@@ -482,27 +462,143 @@ The scripts for SagemMaker testing are basically Jupyter Notebooks. All LSTM whi
 4. SAG Data with XGBoost (*sag_xgb_train.py*)
 5. SAG Data with XGBoost and added ngram features (*seb_ng_xgb_train.py*)
 
-*1 A theory was tested that adding some comparison of student answer to reference answer to the feature set might help the model. This is similar to sentiment analysis.
+*1 A theory was tested that adding ngrams, a comparison of student answer to reference answer, to the feature set might help the model. This is similar to sentiment analysis.
 
-The **local mode** code as well as the Sagemaker code passes in the tuning parameters as a dictionary into the common shared code. In the case of local processing, the common shared method from */source/utils*  named *train_and_test()*. 
+The **local mode** code as well as the Sagemaker code passes in the tuning parameters as a dictionary into the common shared code. In the case of local processing, the common shared method from */source/utils*  named *train_and_test()* for LSTM modeling. 
 This method build the model, fits the data and then uses the test data with the model's predictor to evaluate the model accuracy. 
+
+A similar apporach is used for XGBoost with the slight variation because the persistence of models is different between Keras and XGBoost. To handle this some of the processing is moved to the driver scripts and the lower level methods used by *train_and_test)_* are caled directly. In this case *build_mode()* which returns the model is called directly and model.fit() is called in the driver script and the resulting model is then saved using a *save_xgb_model()* method. Finally the evaluate() and display_results() are called in the driver script. 
+
+#### Local LSTM ####
+Tunning Parameters for **local mode** testing:
 
 The tunning parameters passed into that method are:
 
 
-    model_params = {'max_answer_len': max_answer_len,
-                    'vocab_size': vocab_size,
-                    'epochs': 20,
-                    'pretrained': pretrained,
-                    'embedding_dim': 50,
-                    'flatten': True,
-                    'lstm_dim_1': 100,
-                    'lstm_dim_2': 20,
-                    'dropout': 0.3} 
+    model_params = {'max_answer_len': max_answer_len,   # use by the embedding layer
+                    'vocab_size': vocab_size,           # used by the embedding layer
+                    'epochs': 20,          
+                    'pretrained': pretrained,           # used by build model to load petrained embeddings if true
+                    'embedding_dim': 50,                # Size of embedding dimension
+                    'flatten': True,                    # The embedding dimension is flattened and shaped if true
+                    'lstm_dim_1': 100,                  # Size of the first lstm dimension (> 0)
+                    'lstm_dim_2': 20,                   # Size of the second lstm dimension (>=0, 0 means none)
+                    'dropout': 0.3}                     # The dropout layer percent used (>0).
 
 
 These can be found in the codebase **/source/train.py**  and the Jupyter files,**Capstone 1 SEB.ipynb**,  **Capstone 2 SAG.ipynb** for the two data sets.
 
+#### SageMaker Testing ####
+
+The **SagemMaker mode** code is based on Jupyter Notebooks that setup SageMaker models. The XGBoost model works as a standard SageMaker build in model. For LSTM, a TensorFlow model is used which calls custom code to build and train the model. The code persists the model as expected by SageMaker and also calculates the needed metrics for parsing by SageMakers Hypertuning jobs.
+
+**SageMaker Tests**
+
+1. SEB Data with LSTM/Tensorflow - (*Capstone 1 SEB.ipnyb*)
+2. SAG Data with LSTM/Tensorflow - (*Capstone 2 SAG.ipnyb*)
+3. SAG Data with XGBoost - (*Capstone 2 SAG-XGB.ipnyb*)
+
+Each of these Notebooks reads the data already prepared by the local processing and stored in the git repo under /data/seb and /data/sag in train.csv and test.csv.
+It would be easy to call the utilities to build these files from the Notebooks but since they were already generated locally a simple push and pull from the git repo was used. Further work could be done to make the Jupyter Notesbooks fully self contained but this was not in scope for this project.
+
+The data is loaded into notebook and then uploaded to S3 buckets for use by the SageMaker models. 
+The model was first tested with just an estimator to verify it was working and then a Hypertuning step was done to trying at optimize the parameters. Finally an endpoint is created and the test data is then evaluated using an *evalutate()* function which calls the predictor and generates the desired metrics.
+
+The tunning Parameters passed into the Tensorflow model are very similar to those use for the local mode with the exception that pretrained was not tested because it did not prove helpful and infact was the opposite in local testing:
+
+**Custom Parameters**
+
+Based on local testing slighly different tuning parameters were used based on learning from those tests realted to the difference in data.
+See Local Testing for definition of paramters which are essentially the same.
+
+**SEB**
+
+       hyperparameters = {
+        'epochs': 200,
+        'embedding_size': 30,
+        'flatten': 0,   
+        'lstm_dim_1': 100,
+        'lstm_dim_2': 0,
+        'dropout': 0.2
+       
+**SAG**
+
+       hyperparameters = {
+        'epochs': 200,
+        'embedding_size': 50,
+        'flatten': 1,   
+        'lstm_dim_1': 100,
+        'lstm_dim_2': 20,
+        'dropout': 0.2        
+
+
+HyperTuning Parameters for Tensorflow:
+Note: We also show how the metrics were parsed from the train.py output. Validation_accuracy is the optimization metrics selected.
+
+
+**SEB**
+
+    tf_hyperparameter_tuner = HyperparameterTuner(estimator = estimator, 
+           objective_metric_name = 'Validation_accuracy', # The metric used to compare trained models.
+           objective_type = 'Maximize', # Whether we wish to minimize or maximize the metric.
+           metric_definitions = [{'Name': 'Validation_loss', 
+                                  'Regex': 'Validation_loss:(.*?);'},
+                                 {'Name': 'Validation_accuracy', 
+                                  'Regex': 'Validation_accuracy:(.*?);'}
+                                ],
+           max_jobs = 18, # The total number of models to train
+           max_parallel_jobs = 6, # The number of models to train in parallel
+           hyperparameter_ranges = {
+                'dropout': ContinuousParameter(0.1, 0.4),
+                'embedding_size': IntegerParameter(20, 100),
+                'lstm_dim_1': IntegerParameter(50, 150)
+           })        
+
+**SAG**
+
+    tf_hyperparameter_tuner = HyperparameterTuner(estimator = estimator, 
+           objective_metric_name = 'Validation_accuracy', # The metric used to compare trained models.
+           objective_type = 'Maximize', # Whether we wish to minimize or maximize the metric.
+           metric_definitions = [{'Name': 'Validation_loss', 
+                                  'Regex': 'Validation_loss:(.*?);'},
+                                 {'Name': 'Validation_accuracy', 
+                                  'Regex': 'Validation_accuracy:(.*?);'}
+                                ],
+           max_jobs = 18, # The total number of models to train
+           max_parallel_jobs = 6, # The number of models to train in parallel
+           hyperparameter_ranges = {
+                'dropout': ContinuousParameter(0.1, 0.3),
+                'embedding_size': IntegerParameter(50, 200),
+                'lstm_dim_1': IntegerParameter(50, 200),
+                'lstm_dim_2': IntegerParameter(10, 50)
+           })
+
+
+#### XGBoost Parameters ####
+
+XBGoost was only used to test SAG data as a reference to see how a powerful machine learning algorithm compared to deep learning approaches.
+The basic starting parameters were dervied from local testing and then Hypertuning ranges were adjusted based on tunning runs.
+
+**SAG**
+
+Estimator Parameters:
+
+        max_depth=5
+        eta=0.2
+        gamma=4
+        min_child_weight=6
+        subsample=0.8
+        objective='binary:logistic'
+        early_stopping_rounds=50
+        num_round=4000
+ 
+Hypertuning Parameters:
+
+        'max_depth': IntegerParameter(3, 12)
+        'eta'      : ContinuousParameter(0.05, 0.5)
+        'min_child_weight': IntegerParameter(2, 8)
+        'subsample': ContinuousParameter(0.5, 0.9)
+        'gamma': ContinuousParameter(0, 10)
 
 In this section, the process for which metrics, algorithms, and techniques that you implemented for the given data will need to be clearly documented. It should be abundantly clear how the implementation was carried out, and discussion should be made regarding any complications that occurred during this process. Questions to ask yourself when writing this section:
 - _Is it made clear how the algorithms and techniques were implemented with the given datasets or input data?_
@@ -522,7 +618,7 @@ _(approx. 2-3 pages)_
 ### Model Evaluation and Validation
 
 
-**6.** SAG Data with XGBoost and added ngram features. 
+**6.** **Ngrams:** SAG Data with XGBoost and added Ngram features. 
 
 This leveraged the work previously done for sentiment analysis project
 The answer is compared to the reference answer to generate ngrams. For this test ng1 and ng2 were determined to be the most useful. However, these two were found to only correlation to correct vs. incorrect answers at about 20%. That means given a student answer, about 30% of the correct/incorrect grade is predicted by the ng1 or ng2. Also ng1 and ng2 have a 72% correlation to each other.  
@@ -537,6 +633,15 @@ The results showed minimal gains over the encoded answers without ng1 and ng2. W
     ng1         1.00            0.72      0.29
     ng2         0.72            1.00      0.23
     correct     0.29            0.23      1.00
+ 
+ The two histograms below show the values for ng1 and ng2 which range from 0 to 1 and how they compare for correct and incorrect answers. Ideally, the ngram values for correct answers would skew higher than the ngram values for the incorrect answers.
+ This would show up in a histogram as a two hump view where the left hump was incorrect and the right is incorrect. What we see below is that except for very high values of ng1 and ng2, there is not a very strong corelation.
+ What we see is some small signs of skew as expected for the 30% correlation but it's more like a downward sloap for ngram values from lower to higher in the same ratio as correct to incorrect.
+ 
+ ![](https://github.com/dbbrandt/short_answer_granding_capstone_project/blob/master/data/results/Sag-Ngram-1-Histogram.png?raw=true)
+ 
+ ![](https://github.com/dbbrandt/short_answer_granding_capstone_project/blob/master/data/results/Sag-Ngram-2-Histogram.png?raw=true) 
+ 
  
  
     XGBClassifier(base_score=0.5, booster='gbtree', colsample_bylevel=1,
