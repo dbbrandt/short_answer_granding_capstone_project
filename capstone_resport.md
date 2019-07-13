@@ -590,7 +590,7 @@ The basic starting parameters were dervied from local testing and then Hypertuni
 Estimator Parameters:
 
         max_depth=5
-        eta=0.2
+        eta=0.2 
         gamma=4
         min_child_weight=6
         subsample=0.8

@@ -34,8 +34,8 @@ def main():
         model = load_xgb_model(model_file)
 
     print(model)
-    eval = evaluate(model, X_test, y_test)
-    results_df = decode_predictions(X_test, y_test, vocabulary, eval['Predictions'], questions_file)
+    eval, results = evaluate(model, X_test, y_test)
+    results_df = decode_predictions(X_test, y_test, vocabulary, results['pred'].values, questions_file)
     print_results(results_df)
 
 main()

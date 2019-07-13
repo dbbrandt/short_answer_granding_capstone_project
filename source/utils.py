@@ -189,12 +189,11 @@ def generate_data(answer_df, pretrained=False, sample_size=1, question_id=None):
 
     return randomized_answers, randomized_labels, max_length, vocabulary
 
-
 def load_seb_data(pretrained=False, sample_size=1, verbose=False):
-    filenames = {'em': 'data/sciEntsBank/EM-post-35.xml',
-                 'me': 'data/sciEntsBank/ME-inv1-28b.xml',
-                 'mx': 'data/sciEntsBank/MX-inv1-22a.xml',
-                 'ps': 'data/sciEntsBank/PS-inv3-51a.xml'}
+    filenames = {'em': 'data/source_data/sciEntsBank/EM-post-35.xml',
+                 'me': 'data/source_data/sciEntsBank/ME-inv1-28b.xml',
+                 'mx': 'data/source_data/sciEntsBank/MX-inv1-22a.xml',
+                 'ps': 'data/source_data/sciEntsBank/PS-inv3-51a.xml'}
 
 
     seed(72) # Python
@@ -213,7 +212,8 @@ def load_seb_data(pretrained=False, sample_size=1, verbose=False):
     answer_df.to_csv('data/seb/answers.csv', index=False)
 
     questions_df = pd.DataFrame(questions, columns=['question','answer'])
-    questions_df.to_csv('data/seb/questions.csv')
+    questions_df['id'] = questions_df.index
+    questions_df.to_csv('data/seb/questions.csv', index=False)
 
     data_answers, data_labels, max_length, vocabulary = generate_data(answer_df, pretrained, sample_size, 'id')
 
@@ -401,7 +401,8 @@ def evaluate(predictor, test_features, test_labels, verbose=True):
     min_pred = min(test_preds)
     max_pred = max(test_preds)
     print(f"Min pred: {min_pred} max_pred: {max_pred}")
-    test_preds = (test_preds - min_pred)/(max_pred - min_pred)
+    if max_pred - min_pred > 0:
+        test_preds = (test_preds - min_pred)/(max_pred - min_pred)
     test_preds = np.round(test_preds)
 
     # calculate true positives, false positives, true negatives, false negatives
