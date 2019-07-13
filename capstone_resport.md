@@ -506,6 +506,12 @@ The model was first tested with just an estimator to verify it was working and t
 
 The tunning Parameters passed into the Tensorflow model are very similar to those use for the local mode with the exception that pretrained was not tested because it did not prove helpful and infact was the opposite in local testing:
 
+*Ngrams* 
+
+One of the experiments mentioned was to try adding Ngrams to the features. This was tested with XGBoost rather than LSTM becuase of the alrady complex Embedding layer logic. The ngrams were calclated using the *calculate_containment()* method found in the */similarity.py*. This code was most lifted from the ealier plagiarism project.  That project also did an LCS (longest common sequence) match. Due to the short lenght of many answers, this didn't seem appropriate for short answer daatasets.
+Average containment for multiple values of n were calculated and not surprisingly only n1 and n2 made sence with the short answers. A cross correlation betwen n1, n2 and the question correct label were completed to see how well each correlated. The selection of ng1 and ng2 was made and a test and train data set was manually created by appending these values to the existing generated train.csv and test.csv.
+While the results were not that useful with the models selected here, they are show in the results section and may be an avenue of exploration for future approaches.   
+
 **Custom Parameters**
 
 Based on local testing slighly different tuning parameters were used based on learning from those tests realted to the difference in data.
@@ -606,6 +612,45 @@ In this section, the process for which metrics, algorithms, and techniques that 
 - _Was there any part of the coding process (e.g., writing complicated functions) that should be documented?_
 
 ### Refinement
+
+The refinement process consisted of three major phases:
+(See the **Model Evaluation and Validation** section for additonal refinement details)
+
+*LSTM First*
+Since the baseline is using the LSTM model, all initial tests were with variations of that model.
+
+1. Start testing locally to get some idea of the parameters and ranges of values that have a positive impact.
+
+2. Get a baseline model to converge on training accuracy of 100%, essentially through overfitting as required.
+
+3. Adjust the basic parameters individually to see the directional impact they have on accuracy. These include epochs, dropout, LSTM size, and Embedding size.
+
+4. Try some of the model changes proposed to see if they improve or match the basic model adjustments. If they are competitive consider them for further testing. These include, flattening, pretrained embeddings, multiple LSTM layers.
+
+5. Take the most promissing values and model variations and build a SageMaker impelemtation for validation, testing and then Hypertuning.
+
+6. Validate that the local results can be replicated.
+
+7. See if better results can be obtained with Hypertuning that were done with local testing.
+
+**XGBoost**
+
+1. Using the same data use for LSTM, test an XGBoost model locally.
+
+2. Do some basic tuning tests and compare the results to the LSTM model results.
+
+3. Tranlate the local XBboost model into a SageMaker XGBoost model and build, train, Hypertune and evaluate the results.
+
+
+
+* Epocs: For this dataset and model, 200 epochs generally achieved the necessary convergence and was mostly used for all tests.
+* Embedding: The size of the embedding layer was an important variable. However, pretraining proved to be unproductive. Since the results obtained match or exceeded the baseline, and Pretraining was far below, this approach was not tested extensively.
+One note is that 50 dimensions were used here where 100 were used in the Baseline. For the small SEB dataset, this would probalby not be significant. The Riordan paper was testing various datasets.
+* Flatening/Shaping: This layer had a surprisingly negative impact for this dataset. I would appear that due to the small size of the data set the added information provided by keeping the word vectors seperate may have helpedw converge during training.
+* LSTM: A single LSTM layer seemed sufficient for this data but the size was important.
+* Dropout: The dropout percentage was a very powerful way to fine-tune the results particulary to account for the overfitting during training.
+
+
 In this section, you will need to discuss the process of improvement you made upon the algorithms and techniques you used in your implementation. For example, adjusting parameters for certain models to acquire improved solutions would fall under the refinement category. Your initial and final solutions should be reported, as well as any significant intermediate results as necessary. Questions to ask yourself when writing this section:
 - _Has an initial solution been found and clearly reported?_
 - _Is the process of improvement clearly documented, such as what techniques were used?_
@@ -617,7 +662,7 @@ _(approx. 2-3 pages)_
 
 ### Model Evaluation and Validation
 
-**SEB**
+**1. SEB Data with LSTM**
 
 The evaulation begain by attempting to match the basline provided in the Riordan for variation on the LSTM/Embedding model. Their best results were accuracies in the low to mid 70's.
 My approach was to first overfit to insure that training accuracy was at 100%. Once this was achieved, reduce the overfitting to try an imporove the test results. I also tested a variety of the major 
@@ -639,7 +684,19 @@ Each test is listed in the order they were performed with notes on the changes (
 
 ![](https://github.com/dbbrandt/short_answer_granding_capstone_project/blob/master/data/results/seb/seb_tf_train_results.png?raw=true)
 
-**6.** **Ngrams:** SAG Data with XGBoost and added Ngram features. 
+**2. SEB Data with XGBoost**
+
+Testing XGBoost both locally and on SageMaker is much more straight forward with no complexity in variations of the structure of the model. This is a straightforward hypertuning exercise.
+The results after hypertuning actually matched or maybe were slightly better than all tests with LSTM. It was also far simpler to do. The big downside is that we don't learn much from the resutls about the underlying data and how variations to the model might be done to ultimately improve the restuls more significantly based on our learnings.
+It was a good validation of the LSTM results but also highligted the big challenges that remain in predicting short answer data.
+
+
+
+**3. SAG Data with LSTM**
+
+**4. SAG Data with XGBoost**
+
+**5.** **Ngrams:** SAG Data with XGBoost and added Ngram features. 
 
 This leveraged the work previously done for sentiment analysis project
 The answer is compared to the reference answer to generate ngrams. For this test ng1 and ng2 were determined to be the most useful. However, these two were found to only correlation to correct vs. incorrect answers at about 20%. That means given a student answer, about 30% of the correct/incorrect grade is predicted by the ng1 or ng2. Also ng1 and ng2 have a 72% correlation to each other.  
