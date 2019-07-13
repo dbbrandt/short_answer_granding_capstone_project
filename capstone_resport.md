@@ -617,6 +617,27 @@ _(approx. 2-3 pages)_
 
 ### Model Evaluation and Validation
 
+**SEB**
+
+The evaulation begain by attempting to match the basline provided in the Riordan for variation on the LSTM/Embedding model. Their best results were accuracies in the low to mid 70's.
+My approach was to first overfit to insure that training accuracy was at 100%. Once this was achieved, reduce the overfitting to try an imporove the test results. I also tested a variety of the major 
+model adustments suggested in the Riorden paper as most effetive. On additional test was to use Flattening and Shaping which converts the Embedded dimension into a single vector from the vector per word representation.
+This was recommended on some on-line resources as a possible improvement when using the Embedding layer.
+
+Feature Results: 
+
+* Epocs: For this dataset and model, 200 epochs generally achieved the necessary convergence and was mostly used for all tests.
+* Embedding: The size of the embedding layer was an important variable. However, pretraining proved to be unproductive. Since the results obtained match or exceeded the baseline, and Pretraining was far below, this approach was not tested extensively.
+One note is that 50 dimensions were used here where 100 were used in the Baseline. For the small SEB dataset, this would probalby not be significant. The Riordan paper was testing various datasets.
+* Flatening/Shaping: This layer had a surprisingly negative impact for this dataset. I would appear that due to the small size of the data set the added information provided by keeping the word vectors seperate may have helpedw converge during training.
+* LSTM: A single LSTM layer seemed sufficient for this data but the size was important.
+* Dropout: The dropout percentage was a very powerful way to fine-tune the results particulary to account for the overfitting during training.
+
+*Results Table:*
+
+Each test is listed in the order they were performed with notes on the changes (also highlighted in the cell changed) and notes on the results. The best result is highlighted in green.
+
+![](https://github.com/dbbrandt/short_answer_granding_capstone_project/blob/master/data/results/seb/seb_tf_train_results.png?raw=true)
 
 **6.** **Ngrams:** SAG Data with XGBoost and added Ngram features. 
 
