@@ -690,7 +690,9 @@ Testing XGBoost both locally and on SageMaker is much more straight forward with
 The results after hypertuning actually matched or maybe were slightly better than all tests with LSTM. It was also far simpler to do. The big downside is that we don't learn much from the resutls about the underlying data and how variations to the model might be done to ultimately improve the restuls more significantly based on our learnings.
 It was a good validation of the LSTM results but also highligted the big challenges that remain in predicting short answer data.
 
+Note: Two results had the same accuracy. I chose the result with the higher precisions becuase as stated earlier, it's preferable to mark a correct score incorrect and later adjust upward than the reverse.
 
+![](https://github.com/dbbrandt/short_answer_granding_capstone_project/blob/master/data/results/seb/seb_xgb_train_results.png?raw=true)
 
 **3. SAG Data with LSTM**
 
