@@ -834,7 +834,7 @@ After initial tests, the testing was moved quickly to SageMaker for Hypertuning.
 A total of 18 Hyptertuning jobs were run with the results of the best training job ending about the same as from the local training best restults.
 The table below includes both local and the SageMaker results. 
 
-
+![](https://github.com/dbbrandt/short_answer_granding_capstone_project/blob/master/data/results/sag/sag_xgb_train_results.png?raw=true)
 
 
 **Sagemaker Hypertuning**
