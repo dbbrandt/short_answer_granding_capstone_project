@@ -17,13 +17,13 @@ def main():
 
     model_params = {'max_answer_len': max_answer_len,
                     'vocab_size': vocab_size,
-                    'epochs': 10,
+                    'epochs': 20,
                     'pretrained': pretrained,
-                    'embedding_dim': 30,
-                    'flatten': False,
+                    'embedding_dim': 50,
+                    'flatten': True,
                     'lstm_dim_1': 100,
-                    'lstm_dim_2': 0,
-                    'dropout': 0.2}
+                    'lstm_dim_2': 20,
+                    'dropout': 0.3}
 
     # Trains model if train=True and prints out metrics on results (see below)
     eval, results = train_and_test(model_dir, model_file, model_params, X_train, y_train, X_test, y_test,

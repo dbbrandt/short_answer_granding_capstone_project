@@ -429,9 +429,12 @@ python commands to generate the question.csv and answer.csv. Once completed the 
     answers['score'] = scores_df['score']
     answers[‘correct] = answers[’score’] >= 4
     answers.to_csv('data/sag2/answers.csv', index=False)
+  
+#### XGBoost Data ####
+
+The data used for XGBoost needs to be in the format of [labels,... features...]. In additional, XGBoost requires a validation.csv which is draw from the train.csv used in the LSTM models. A simple slice was done to generate the train.csv and validate.csv from the one generated for LSTM
  
    
-
 In this section, all of your preprocessing steps will need to be clearly documented, if any were necessary. From the previous section, any of the abnormalities or characteristics that you identified about the dataset will be addressed and corrected here. Questions to ask yourself when writing this section:
 - _If the algorithms chosen require preprocessing steps like feature selection or feature transformations, have they been properly documented?_
 - _Based on the **Data Exploration** section, if there were abnormalities or characteristics that needed to be addressed, have they been properly corrected?_
@@ -768,13 +771,13 @@ After the SEB tests, the initial testing proved very confusing. With a similar m
 
 Each test is listed in the order they were performed with notes on the changes (also highlighted in the cell changed) and notes on the results. The best result is highlighted in green. The best restult is consistent with the best result for the SEB data.
 
-![](https://github.com/dbbrandt/short_answer_granding_capstone_project/blob/master/data/results/sag/ssg_tf_train_results.png?raw=true)
+![](https://github.com/dbbrandt/short_answer_granding_capstone_project/blob/master/data/results/sag/sag_tf_train_results.png?raw=true)
 
 **Sagemaker Hypertuning**
 
 A total of 18 Hyptertuning jobs were run with the results of the best training job ending about the same as from the local training best restults.
 The SageMaker results are consistent with the local results but show no improvement after Hypertuning.
-The result is 75.9% compared to the local 77.1% with a precision of 82.4% compared to 
+The result is 75.9% compared to the local 77.1% with a precision of 82.4% compared to 82.7% 
 
       hyperparameters = {
             'epochs': 200,
@@ -860,8 +863,7 @@ The table below includes both local and the SageMaker results.
             'gamma': ContinuousParameter(0, 10),
        })
 
-    {'max_depth': 10, 'eta': 0.01, 'gamma': 1, 'min_child_weight': 6, 'subsample': 0.8, 'silence': 1, 'objective': 'binary:logistic', 
-    'early_stopping_rounds': 50, 'num_round': 10000}
+
 
 **5.** **Ngrams:** SAG Data with XGBoost and added Ngram features. 
 
