@@ -223,7 +223,7 @@ def load_seb_data(pretrained=False, sample_size=1, verbose=False):
     labels_df = pd.DataFrame(y_train)
     answers_df = pd.DataFrame(X_train)
     test_data = pd.concat([labels_df, answers_df], axis=1)
-    test_data.to_csv('data/seb/train.csv', index=False)
+    test_data.to_csv('data/seb/train.csv', index=False, header=None)
     train_x = test_data.iloc[:, 1:]
     max_length = train_x.values.shape[1]
     print(f"Test Data columns: {max_length}")
@@ -232,7 +232,7 @@ def load_seb_data(pretrained=False, sample_size=1, verbose=False):
     labels_df = pd.DataFrame(y_test)
     answers_df = pd.DataFrame(X_test)
     test_data = pd.concat([labels_df, answers_df], axis=1)
-    test_data.to_csv('data/seb/test.csv', index=False)
+    test_data.to_csv('data/seb/test.csv', index=False, header=None)
 
     if verbose:
         raw_answers = decode_answers(test_data.values, vocabulary)
@@ -282,7 +282,7 @@ def load_sag_data(pretrained=False, percent_of_data=1, verbose=False):
     labels_df = pd.DataFrame(y_train)
     answers_df = pd.DataFrame(X_train)
     test_data = pd.concat([labels_df, answers_df], axis=1)
-    test_data.to_csv('data/sag2/train.csv', index=False, header=False)
+    test_data.to_csv('data/sag2/train.csv', index=False, header=None)
     train_x = test_data.iloc[:, 1:]
     max_length = train_x.values.shape[1]
     print(f"Test Data columns: {max_length}")
@@ -291,7 +291,7 @@ def load_sag_data(pretrained=False, percent_of_data=1, verbose=False):
     labels_df = pd.DataFrame(y_test)
     answers_df = pd.DataFrame(X_test)
     test_data = pd.concat([labels_df, answers_df], axis=1)
-    test_data.to_csv('data/sag2/test.csv', index=False)
+    test_data.to_csv('data/sag2/test.csv', index=False, header=None)
 
     if verbose:
         raw_answers = decode_answers(test_data.values, vocabulary)
