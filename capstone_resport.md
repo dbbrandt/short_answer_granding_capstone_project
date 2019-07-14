@@ -772,12 +772,96 @@ Each test is listed in the order they were performed with notes on the changes (
 
 **Sagemaker Hypertuning**
 
+A total of 18 Hyptertuning jobs were run with the results of the best training job ending about the same as from the local training best restults.
+The SageMaker results are consistent with the local results but show no improvement after Hypertuning.
+The result is 75.9% compared to the local 77.1% with a precision of 82.4% compared to 
+
+      hyperparameters = {
+            'epochs': 200,
+            'embedding_size': 50,
+            'flatten': 1,   
+            'lstm_dim_1': 100,
+            'lstm_dim_2': 20,
+            'dropout': 0.2
+      }) 
+
+    tf_hyperparameter_tuner = HyperparameterTuner(estimator = estimator, # The estimator object to use as the basis for the training jobs.
+           objective_metric_name = 'Validation_accuracy', # The metric used to compare trained models.
+           objective_type = 'Maximize', # Whether we wish to minimize or maximize the metric.
+           metric_definitions = [{'Name': 'Validation_loss', 
+                                  'Regex': 'Validation_loss:(.*?);'},
+                                 {'Name': 'Validation_accuracy', 
+                                  'Regex': 'Validation_accuracy:(.*?);'}
+                                ],
+           max_jobs = 18, # The total number of models to train
+           max_parallel_jobs = 6, # The number of models to train in parallel
+           hyperparameter_ranges = {
+                'dropout': ContinuousParameter(0.1, 0.3),
+                'embedding_size': IntegerParameter(50, 200),
+                'lstm_dim_1': IntegerParameter(50, 200),
+                'lstm_dim_2': IntegerParameter(10, 50)
+           })
+
+
+    Best Job
+    
+    dropout: 0.2540023221723521 
+    embedding_size: 177 
+    epochs: 200 
+    flatten: 1 
+    lstm_dim_1: 197 
+    lstm_dim_2: 13 
+    
+    predictions  0.0  1.0
+    actuals              
+    0.0          107   96
+    1.0           81  450
+    
+    Recall:     0.847
+    Precision:  0.824
+    Accuracy:   0.759
 
 **4. SAG Data with XGBoost**
 
 Starting with the local testing results, a Jupyter Notebook was used to run Hypertuning for the XGBoost model. A total of 18 Hyptertuning jobs were run with the results of the best training job ending about the same as from the local training best restults.
 
-The basic estimator was tested first based on successful local parameters and the results were consistent:
+The basic estimator was tested first based on successful local parameters and the results were consistent with SEB but helped along by the greater bias towards correct answers in the data.
+After initial tests, the testing was moved quickly to SageMaker for Hypertuning.
+
+A total of 18 Hyptertuning jobs were run with the results of the best training job ending about the same as from the local training best restults.
+The table below includes both local and the SageMaker results. 
+
+
+
+
+**Sagemaker Hypertuning**
+
+
+    estimator.set_hyperparameters(max_depth=15,
+            eta=0.01,
+            gamma=1,
+            min_child_weight=6,
+            subsample=0.8,
+            silence=1,
+            objective='binary:logistic',
+            early_stopping_rounds=50,
+            num_round=10000)
+
+    xgb_hyperparameter_tuner = HyperparameterTuner(estimator = estimator, # The estimator object to use as the basis for the training jobs.
+       objective_metric_name = 'validation:rmse', # The metric used to compare trained models.
+       objective_type = 'Minimize', # Whether we wish to minimize or maximize the metric.
+       max_jobs = 18, # The total number of models to train
+       max_parallel_jobs = 6, # The number of models to train in parallel
+       hyperparameter_ranges = {
+            'max_depth': IntegerParameter(12, 20),
+            'eta'      : ContinuousParameter(0.005, 0.5),
+            'min_child_weight': IntegerParameter(2, 8),
+            'subsample': ContinuousParameter(0.5, 0.9),
+            'gamma': ContinuousParameter(0, 10),
+       })
+
+    {'max_depth': 10, 'eta': 0.01, 'gamma': 1, 'min_child_weight': 6, 'subsample': 0.8, 'silence': 1, 'objective': 'binary:logistic', 
+    'early_stopping_rounds': 50, 'num_round': 10000}
 
 **5.** **Ngrams:** SAG Data with XGBoost and added Ngram features. 
 
