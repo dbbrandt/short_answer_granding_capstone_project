@@ -3,13 +3,13 @@ from xgboost import XGBClassifier
 
 def build_model(model_params):
     model = XGBClassifier(scale_pos_weight=1,
-                          learning_rate=0.02,
+                          learning_rate=0.184,
                           objective=model_params['objective'],
-                          subsample=0.8,
+                          subsample=0.807,
                           min_child_weight=3,
                           n_estimators=10000,
                           max_depth=12,
-                          gamma=1.2,
+                          gamma=1.173,
                           verbosity=0)
 
     return model

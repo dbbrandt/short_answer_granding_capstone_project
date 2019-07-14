@@ -927,13 +927,21 @@ _(approx. 1-2 pages)_
 
 ### Free-Form Visualization
 
-One of the concerns with modeling is the distirbution of data. Specifically the ratio of correct to incorrect which also can be though of as the relative difficlty of the tests for it's students. 
-Taken as a whole we showed that the 2/3 to 1/3 correct to incorrect did not seem to be a major factor in accuracy results.
-In fact the SEB dataset had the reverse percentages to the SAG dataset but the results for accuracy were about the same.
+One of the concerns with modeling is the distirbution of correct vs. incorrect student responses. The correct v.s. incorrect can also be though of as the relative difficlty of the tests for it's students.
+The higher the ratio of incorrect to correct, the more difficult the test is compared to a test with a higher correct percentage. 
+It was observed that the 2/3 to 1/3 correct to incorrect did not seem to make a difference when flipped on the accuracy of the results.
+The SEB dataset had the reverse percentages to the SAG dataset but the results for accuracy were about the same. In the aggregate this difference doesn't appear to be the problem. 
+However, the lack of balance does seem important when the best model results are not that much beter for the larger dataset than simply defaulting to all incorrect. 
+One dissapointing results was when creating a balanced dataset by randomly taking the same number of correct and incorrect answers, the results were much worse. This suggested something deeper might be going on.
 
-The SAG dataset had many more questions, 87 vs. 4. This meant thatanalysis on a question level becomes possible and interesting. We have enough data to see if aspects of the questions impacted accuracy.
-Looking at the quality of predictions both from an accuracy and precision point of view shows a strong correlation between the difficulty of the question and the accuracy of the prediction.
-This could be interpreted as harder questions results in more random or inchorent answers which are harder to predict. This also impacts the quantity of correct results. When there are very few as compared to easier questions it's not surprising that predictability would differ with difficulty of the question. 
+The SAG dataset had a very large number of questions with a decent count of results for each question. This suggested looking at results by question. When this was done it became evident that the difficulty of questions
+varied greatly. If difficulty were to be an impact on predictability looking at individual questions might shed some light. 
+
+We have enough data to see if aspects of the questions impacted accuracy. Looking at the quality of predictions both from an accuracy and precision point of view shows a strong correlation between the difficulty of the question and the accuracy of the prediction.
+This could be interpreted as harder questions results in more random or inchorent answers which are harder to predict. This also impacts the quantity of correct results. 
+When there are very few examples of correct answers as compared to easier questions it's not surprising that predictability for those would suffer.
+
+The conclusion is that tests with very imbalanced difficulty of questions are a likely source of concern for the models being used. This should be further explored and means if any to adjust for this could be considered. That was out of scope for this project. 
 
 
 **Percentage of correct v.s. incorrect by Question**
@@ -948,6 +956,35 @@ In this section, you will need to provide some form of visualization that emphas
 - _If a plot is provided, are the axes, title, and datum clearly defined?_
 
 ### Reflection
+
+The solution to solving short answer grading still remains to be found. This project replicated the results and the finding of the latest research and identified paths (see Improvements below) to move towards a usable solution to augment or replace human graders.
+
+The steps taken in the project were:
+
+1. Take the identified data sets and transform the answers into bag of words embedding vectors.
+2. Build a custom LSTM model with additional layers based on the latest approaches from the literature. 
+3. Replicate the baseline results through the adjustment to the model and hypertuning:
+    * Embedding: size, calculated or pretrained. Pretrained was not helpful given the percent vocabulary misses in the Glove dataset.
+    * Flattening/Shaping: inclure or exclude this layer. The results suggested that flattening is helpful for large datasets.
+    * LSTM Layers: At least two layers is required for complex datasets.
+    * The adam optimizer was used through these tests. Some others were tried but no obvious improvements were found. With the scope of work already undertaken this avenue was not explored.
+    * Objective: Literature suggested that linear optimizate outperformed binary. This was proven to be the case for this type of model. It apperas to help converge on an answer better than softmax. One possible explaination is that linear resulted in a wider range of results including negative to positive greather than 1.
+    Normalizing this after predictions may have been more efficient way for the back-propogation to handle weights than normalizing during the learning.
+4. Hypertune the models in SageMaker. 
+    * This validated the data done with local models with a completely different codebase and processing approach. 
+    * Hypertuning was not able to achieve better results. Since a really good solution was not found, this is not surprising.
+5. Compare the LSTM model to XGBoost.
+    * Find out if deep learning models outperform a powerful machine learning algorithm.
+    * Deep learning model attempt to expose and understand the nature and solution to a learning problem rather than brute force. 
+    * This problem was not solved with deep learning so brute force did worke well in some cases. With the more complex and larger data set it failed to converge on a good result, specifically in SageMaker with Hypertuning. 
+     Some good results were obtained localy and with simple testing with SageMaker estimators. 
+    This was not explored but suggests maybe the problem is better handled by deep learning. 
+    * The benefit of the deep learning apporach is that it leaves us with many avenues to better understand and improve on the soltuion in the future.
+    
+Finally, the solution to this problem remain elusive but it is a very interesting problem and is very similar in some way to understanding human speach. If an AI assistant could response to any question with a useful answer it would understand the complex way we express ideas.
+This is basically the problem with short answer grading. Human answer with all kinds of mistakes and variations that human grader are even challenged to handle.               
+      
+
 In this section, you will summarize the entire end-to-end problem solution and discuss one or two particular aspects of the project you found interesting or difficult. You are expected to reflect on the project as a whole to show that you have a firm understanding of the entire process employed in your work. Questions to ask yourself when writing this section:
 - _Have you thoroughly summarized the entire process you used for this project?_
 - _Were there any interesting aspects of the project?_
@@ -955,6 +992,18 @@ In this section, you will summarize the entire end-to-end problem solution and d
 - _Does the final model and solution fit your expectations for the problem, and should it be used in a general setting to solve these types of problems?_
 
 ### Improvement
+
+Throught the analysis the goals was to look for improvements since the baseline was not an adequate solution to short answer grading using machine learning. Before knowing which direction to persue, it is necessary to fully understand
+the work done prior and get a sense of how deep learning and machine learning solutions perform and are optimized.
+
+After testing a variety of approaches, several areas suggest possible paths to some improvement. 
+
+1) Adust for the variying difficulty of questions. Balance the correct and incorrect ratios at the question level rather the dataset level. This may not be feasible for some questions where there are very low counts of one outcome. This may suggest that some questions given the dataset should be discarded and left for manual grading while those with sufficient data to balance difficulty coudl be modeled for machine learning.
+
+2) Leverage the knowlege of the reference answer. This may add value for some questions depending on how consistent the answer are. Where the answer can be expressed in may different ways, it might be necessary to provide multiple reference answers and pick the one whith the high similarity scores.
+
+3) Leverage Pretrained Embedding. In order for this to be effective, fix typos and spelling errors and find a way to add jargon specific to the test so those terms are not omitted from the features. Vectors for jargon may requries add unique  new vectors for those words that are not in Glove. Correcting concatenated words and misspelling will never be perfect but it's a problem that could be particaly solved with algorithms and possible another machine learning approach.  
+
 In this section, you will need to provide discussion as to how one aspect of the implementation you designed could be improved. As an example, consider ways your implementation can be made more general, and what would need to be modified. You do not need to make this improvement, but the potential solutions resulting from these changes are considered and compared/contrasted to your current solution. Questions to ask yourself when writing this section:
 - _Are there further improvements that could be made on the algorithms or techniques you used in this project?_
 - _Were there algorithms or techniques you researched that you did not know how to implement, but would consider using if you knew how?_
