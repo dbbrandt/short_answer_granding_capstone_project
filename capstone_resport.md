@@ -662,6 +662,23 @@ _(approx. 2-3 pages)_
 
 ### Model Evaluation and Validation
 
+The benchmark for this testing was an accuracy in the mid 70's. On the surface this seems poor but not a total failure. It is important to note, and it is born out by the results, that since the
+dataset is not perfectly balanced, predicting all incorrect for SEB would result in 64% accuracy while all correct for SAG data restuls in a 72.5% accuracy.
+It is critial that the test results in a good distribution of probabilities and the epochs converge on a solution. To the degree that that solution is not much better than trivial predicion of all correct/incorrect
+we can conclude that the model was not a success. The starting assumption of this project was that the outcome would match the baseline and that some new ground breaking solution would be found.
+The ultimate goal is to replicate the resutls and gain insight into what next steps and ares of exploration might lead toward a better solution.
+
+**Outcome**
+
+1. *The Deep Learning baseline was matched*. The results show how difficult the deep learning model is to optimize with this data set. The best results were slightly better than the baseline with simpler solutions than the optimal ones selected for the baseline.
+
+2. *XGBoost - Machine Learning* also *matched the baseline*. This was a bit of a surprising result but that highlights the questionable value of deep learning for this problem. However, because the deep learning model provides so much more fine grained insight and control it is a much greener field for future explorating and testing of new idea.
+
+3. *Similarity* - While only briefly tested, intutiion would suggest that since questions are so varried in difficulty and correctness is so important to short answer grading, that some use of the correct answer compared to the student answer would add value. Given the limitation sof the scope of this project, this was only lightly tested. It showed a little promisse but was not sufficient to dedicate extensive testing and warrants a seperate project to combine embedding features with similarity features in various way with different models.
+
+4. *Question Difficulty* - Analysis showed that question difficulty varied greatly. Therefore, the correct/incorrect ratios that lead on avergage to 72.5% correct are not actually the case on individual questions which vary from 20% to 100% correct answers. This makes the results more intesting when look at by individal questions. Here we see a strong inverse corelation between difficulty and accuracy of prediction with the models used. This bears deeper examination and model testing than was done here. 
+  
+
 **1. SEB Data with LSTM**
 
 The evaulation begain by attempting to match the basline provided in the Riordan for variation on the LSTM/Embedding model. Their best results were accuracies in the low to mid 70's.
@@ -684,6 +701,47 @@ Each test is listed in the order they were performed with notes on the changes (
 
 ![](https://github.com/dbbrandt/short_answer_granding_capstone_project/blob/master/data/results/seb/seb_tf_train_results.png?raw=true)
 
+
+**Sagemaker Hypertuning**
+
+Starting with the local testing results, a Jupyter Notebook was used to run Hypertuning for the LSTM/Tensorflow model.
+A total of 18 Hyptertuning jobs were run with the results of the best training job ending about the same as from the local training best restults.
+
+The basic estimator was tested first based on successful local parameters and the results were consistent:
+
+       hyperparameters = {
+        'epochs': 200,
+        'embedding_size': 30,
+        'flatten': 0,   
+        'lstm_dim_1': 100,
+        'lstm_dim_2': 0,
+        'dropout': 0.2
+                        
+*Hypertuning* was tested using ranges around the successful local values:
+
+       max_jobs = 18, # The total number of models to train
+       max_parallel_jobs = 6, # The number of models to train in parallel
+       hyperparameter_ranges = {
+            'dropout': ContinuousParameter(0.1, 0.4),
+            'embedding_size': IntegerParameter(20, 100),
+            'lstm_dim_1': IntegerParameter(50, 150)
+       })                        
+
+
+* dropout: 0.22199686351998094
+* embedding_size: 54
+* lstm_size 97
+
+   
+    predictions  0.0  1.0
+    actuals              
+    0.0           23    3
+    1.0            7   10
+    
+    Recall:     0.588
+    Precision:  0.769
+    Accuracy:   0.767
+
 **2. SEB Data with XGBoost**
 
 Testing XGBoost both locally and on SageMaker is much more straight forward with no complexity in variations of the structure of the model. This is a straightforward hypertuning exercise.
@@ -695,6 +753,23 @@ Note: Two results had the same accuracy. I chose the result with the higher prec
 ![](https://github.com/dbbrandt/short_answer_granding_capstone_project/blob/master/data/results/seb/seb_xgb_train_results.png?raw=true)
 
 **3. SAG Data with LSTM**
+
+After the SEB tests, the initial testing proved very confusing. With a similar model to the best performing for SEB, convergence was not acheivable. Monitoring the minimum and maximum prediction probabilities showed they were essentially the same for a variety of initial tests. It was not until flattening was tryied that convergence suddenly became easily achieavable. The opposite was the case for the SEB data. SAG is a signficantly larger and more complex dataset and  contains longer answers. It has 80 questions rather than 4. Flattening here may simplify the feature vector in an essential way.
+
+**Two LSTM Layers** were required to achieve the best results which also suggest the complexity of the dataset requires different tunning from the SEB data. 
+
+**Pretrained Embedding was not helpful**. As with the SEB data, pre-trained embedding was not helpful and did not provide a converging model. It should be noted that a decent percentage of the data could not be found in the Glove dictionary. This was due to misspellings, accidental concatinations and technical jargon. About 18% or 466 out of 2648 of the vocubulary was not found.
+  * Examples:
+    * arrary (array)
+    * fasterbecause  (faster because)
+    * nonconstant (jargon)
+    * enqueue (jargon)
+    
+
+Each test is listed in the order they were performed with notes on the changes (also highlighted in the cell changed) and notes on the results. The best result is highlighted in green. The best restult is consistent with the best result for the SEB data.
+
+![]()
+
 
 **4. SAG Data with XGBoost**
 

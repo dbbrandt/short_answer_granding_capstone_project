@@ -261,8 +261,8 @@ def str_id_map(filename):
     return id_to_num
 
 def load_sag_data(pretrained=False, percent_of_data=1, verbose=False):
-    filename = 'data/sag2/answers.csv'
-    # filename = 'data/sag2/balanced_answers.csv'
+    # filename = 'data/sag2/answers.csv'
+    filename = 'data/sag2/balanced_answers.csv'
 
     seed(72) # Python
     set_random_seed(72) # Tensorflow
