@@ -768,10 +768,16 @@ After the SEB tests, the initial testing proved very confusing. With a similar m
 
 Each test is listed in the order they were performed with notes on the changes (also highlighted in the cell changed) and notes on the results. The best result is highlighted in green. The best restult is consistent with the best result for the SEB data.
 
-![]()
+![](https://github.com/dbbrandt/short_answer_granding_capstone_project/blob/master/data/results/sag/ssg_tf_train_results.png?raw=true)
+
+**Sagemaker Hypertuning**
 
 
 **4. SAG Data with XGBoost**
+
+Starting with the local testing results, a Jupyter Notebook was used to run Hypertuning for the XGBoost model. A total of 18 Hyptertuning jobs were run with the results of the best training job ending about the same as from the local training best restults.
+
+The basic estimator was tested first based on successful local parameters and the results were consistent:
 
 **5.** **Ngrams:** SAG Data with XGBoost and added Ngram features. 
 
