@@ -4,39 +4,39 @@ Capstone project for Udacity's Machine Learning for Engineers
 [Final Report](https://github.com/dbbrandt/short_answer_granding_capstone_project/blob/master/capstone_resport.md)
 
 The purpose of this project is to validate approaches to grading short answer tests using machine learning models. 
-The first step was to replicate results of a deep learning LSTM approach with embedding from the Riordan paper (3) reference below.
-The results show moderate but limited success and the challenges of deep learning in this domain. Most reaults are in the range of 70-75% accuracy.
+The problem is to determine if a student answer is correct or incorrect based on a model that performs a binary classification or linear regresssion approach. In either case, the output of the model prediction is a probability that an answer is correct or incorrect on a scale of 0 to 1.
 
-This project also implements these approaches in the Sagemaker enviornment and uses Hypertuning to see if the results can be improved.
-Finally the results are compared to a simpler XGBoost approach. The results were basically the same as the LSTM approach. 
-Because of the inherrent limitation of short answer training data this result wsa not entirely surprising. 
-That is to say the results of neither apporach is adequate to automate short answer grading.
+The first step in the project is to replicate results of a deep learning LSTM approach (Long Short Term Memory) with embedding from a recent state of the art research paper by Riordan reference below (*3). Each student answer is represented as a vector of numbers, where an integer is uniquely mapped to a word based on a vocabulary of all words in the dataset of answers. Embedding referes to a step where the word vectors are used by the model to create a set output where related words are represented by vectors closer together than unrelated words. This allows the model to handle simiilar words being used to represent the same correct answer. The model can do the embedding at the time its run or pretrained embeddings can be used which can be downloaded from other sources. Pretrained embeddings represent the relationship of words based on a large set of training data that might not be available with a particular problem.
+The output of the model is the probability between 0 and 1 that the answer is correct.
 
-Suggested future testing could focus on identifying the kinds of questions and answers that perform better by analyzing the results on a question basis.
-Thests should be done with more predecitable short answer questions without typos and spelling issues.
-If possible an algorithm to correct spelling could be added to the data preprocessing to make the pretrained embedding more useful.
-It is also possible that the results could be used to identify questions that can be autograded while flaging questions or specific answers for human grading if they fall in a range of probabilities that are not as conclusive.
+The results of state of the art machine learning currently show moderate but limited success automating short answer grading.
+Most reaults are in the range of 70-75% accuracy. Something close to 95-100% accuracy is needed. To the extent it cannot be achieved,
+the prediction must error toward precision, which means avoiding false positive (grading incorrect answer as correct) or Type 1 errors in favor of Type 2 errors . Answers with a false negative, correct answers marked incorrect,
+are easier for a manual grader to review and credit the students test score. Answers graded correct that are incorrect will not likely be reported by students.
+
+This project leverages both local process and the Sagemaker enviornment in order to uses Hypertuning. Hypertuning leverage the power of cloud computer to run a large number of concurrent models at once and find the optimal set of model configurations (tunning parameters) that result in the best predictions. 
+
+This project also compares the state-of-the-art deep learning model, LSTM, to a much simpler but powerful machine learning model, XGBoost. 
+
+The results will show that either approach will not come near to the desired accuracy. That is to say neither apporach is currrently adequate to automate short answer grading. However, deep learning model can be used to partially automate short answer grading and a major goal of this project is to better understand the limitations and strenghts of the deep learning approach.
+
+The results also show that future testing should focus on identifying the kinds of questions and answers that perform better by analyzing the results on a question basis.
+
+Pretrained data was not of much use in this project due to user input errors. Future tests should be done with more predecitable short answer questions without typos and spelling issues. This could be accomplished by adding upfront algorithms to correct spelling and typos. Such preprocessing would make the pretrained embedding more useful. 
+
+Finally, it is possible that the results could be used to identify questions that can be autograded while flaging questions or specific answers for human grading if they fall in a range of probabilities that are not as conclusive.
 
 Summary of tests:
   * LSTM with generated embedding
   * LSTM with pretrained Glove embedding
   * XGBoost with simple encoded data
-  * XGBoost with additional ngram features.
+  * XGBoost with additional ngram features. (Ngram are calculated features that leverage the correct answer compared to the user answer)
 
 Additonal Variations for LSTM:
-  * Flattening the embedding output
-  * Dropout layers
-  * Single and Multiple LSTM layers
+  * Flattening the embedding output # simplifying the formate of the vectors output by the embedding layer
+  * Dropout layers # discarding a fraction of a layers output to reduce overfitting the data
+  * Single and Multiple LSTM layers  # using more nodes to handler more complex datasets.
   
-Sagemaker:
-
-* Both LSTM and XGBoost models were trained and tested with Hypertuning in Sagemaker to leverage the scaling and hypertuning capabilities.
-
-Keras/Tensorflow on Sagemaker:
-
-* Local testing for LSTM was done with Keras/Tensorflow which allows for simple model construction. 
-* The technical obstacles and limited examples Keras with TensorFlow on Sagemaker proved challenging and the resulting learning will prove useful for future projects.             
-
 Reports:
 
 * See */capstone_proposal.pdf* for the project proposal documentation.

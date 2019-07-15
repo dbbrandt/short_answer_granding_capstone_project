@@ -48,24 +48,35 @@ Another benefit of short answer over multiple choice questions is that they are 
 
 #### Overview ####
 
-The goal of this project is to build the tools and models necessary to demonstrate the capabilities of various apporaches of machine learning to grade short answers. 
-The first step is to identify literature that show the current state of the art in solving this problem. This includes identifying baseline models and datasets from which we can validate the code developed in this project are valid by reproducting the results from the literature.
+The purpose of this project is to validate approaches to grading short answer tests using machine learning models. 
+The problem is to determine if a student answer is correct or incorrect based on a model that performs a binary classification or linear regresssion approach. In either case, the output of the model prediction is a probability that an answer is correct or incorrect on a scale of 0 to 1.
 
-In addition to implementing the models and utilities to load and process the test data, we also want to deploy the solution in Sagemaker so we can leverage the power of cloud computing and Hypertuning to see if we can imporove on the results of the literature.
+The first step in the project is to replicate results of a deep learning LSTM approach (Long Short Term Memory) with embedding from a recent state of the art research paper by Riordan reference below (*3). Each student answer is represented as a vector of numbers, where an integer is uniquely mapped to a word based on a vocabulary of all words in the dataset of answers. Embedding referes to a step where the word vectors are used by the model to create a set output where related words are represented by vectors closer together than unrelated words. This allows the model to handle simiilar words being used to represent the same correct answer. The model can do the embedding at the time its run or pretrained embeddings can be used which can be downloaded from other sources. Pretrained embeddings represent the relationship of words based on a large set of training data that might not be available with a particular problem.
+The output of the model is the probability between 0 and 1 that the answer is correct.
 
-
-The primary reference models used were based on an deep learning approch used in the Riordan paper (*3) which is a state of the art solution. 
-
-Reordan used an LSTM model with an embedding layer. The embedding layer accepts encoded english sentences and then converts them to word vectors that improve the representation of the words for machine learning solutions.
-The use of the LSTM model leverages the fact that sentences have sequential wording and order of words helps interpret the meaning. 
-
-After completing all the testing with a deep learning approach, a more simple XGBoost approach is tested and tuned with the same data to see if the deep learning approach was significantly better than a powerful machine learning algorithm.
+The results of state of the art machine learning currently show moderate but limited success automating short answer grading.
+Most reaults are in the range of 70-75% accuracy. Something close to 95-100% accuracy is needed. To the extent it cannot be achieved,
+the prediction must error toward precision, which means avoiding false positive (grading incorrect answer as correct) or Type 1 errors in favor of Type 2 errors . Answers with a false negative, correct answers marked incorrect,
+are easier for a manual grader to review and credit the students test score. Answers graded correct that are incorrect will not likely be reported by students.
 
 To cover a variety of short answer data challenges, two different dataset were chosen from different research papers:
 
 1. SciEntsBank (SEB) dataset. The dataset consists of science assessment questions with 2-way labels (correct/incorrect). *3 (Reordan) 
 
 2. Short Answer Grading (SAG): These assignments exams were assigned to an introductory computer science class at the University of North Texas and collected via an online learning environment. *1 (Suzen)
+
+This project leverages both local process and the Sagemaker enviornment in order to uses Hypertuning. Hypertuning leverage the power of cloud computer to run a large number of concurrent models at once and find the optimal set of model configurations (tunning parameters) that result in the best predictions. 
+
+This project also compares the state-of-the-art deep learning model, LSTM, to a much simpler but powerful machine learning model, XGBoost. 
+
+The results will show that either approach will not come near to the desired accuracy. That is to say neither apporach is currrently adequate to automate short answer grading. However, deep learning model can be used to partially automate short answer grading and a major goal of this project is to better understand the limitations and strenghts of the deep learning approach.
+
+The results also show that future testing should focus on identifying the kinds of questions and answers that perform better by analyzing the results on a question basis.
+
+Pretrained data was not of much use in this project due to user input errors. Future tests should be done with more predecitable short answer questions without typos and spelling issues. This could be accomplished by adding upfront algorithms to correct spelling and typos. Such preprocessing would make the pretrained embedding more useful. 
+
+Finally, it is possible that the results could be used to identify questions that can be autograded while flaging questions or specific answers for human grading if they fall in a range of probabilities that are not as conclusive.
+
 
 #### References ####
 
@@ -80,7 +91,7 @@ ___
 ### Problem Statement
 
 #### Goal ####
-Create a machine learning model and the supporting code to perform grading of an arbitrary short answer test given a limited set of actual test results. 
+Create a machine learning model and the supporting code to perform grading of an arbitrary short answer test, where each answer is graded as correct or incorrect, given a limited set of actual test results. 
 
 For this project I will focus on reproducing some results from the literature and implementing an approach with Sagemaker and a custom Sklearn deep learnign LSTM model.
 For comparison a basic XGBoost model will also be tested with the same data. 
@@ -101,15 +112,17 @@ Once the two types of models are built, tuned and tested with the relatively sma
 the same models and tuning will be applied to an entirely different and larger data set, SAG, which consists of 88 computer science questions and about 2500 answers. 
 
 ### Metrics
-This is a basic binary classification problem, so the metrics are pretty straight forward. We are looking for accuracy. In addition, recall and precision are relevant as they help indeify some of the issues behind any prediction. 
-This occured often in this prject when models failed to converge on a solution and all correct and incorrect were predicted. This might lead to a reasonable accuracy but is not an acceptable solution. For short answer grading, there might also be a good argument for a preference for precision over recall because it's better to err on the side of incorect. A student can argue the answer was correct and it can then be manually graded to imporve a score. The student has an incentive to bring this forward but will likely accept a false positive without complaint.
+This is a basic binary classification problem, so the metrics are pretty straight forward. We are looking for accuracy with a secondary goal of minimizing type 1 errors without impacting accuracy. False positives are less likely to be discovered or reported by students then false negatives which if reported can improve their grade.
+Because of this bias toward Type II errors, recalland precision are relevant as they help indeify the type of error. 
+Variation with the same accuracy occured often during testing. Also predicting all correct or incorrect when models failed to converge on a solution occured when first tunninga model. 
+This might lead to a reasonable accuracy through high recall but is not an acceptable solution. 
 
 The key metrics are:
 
 * True Positives - np.logical_and(test_labels, test_preds).sum()
-* False Positives - np.logical_and(1 - test_labels, test_preds).sum()
+* False Positives - np.logical_and(1 - test_labels, test_preds).sum()  - Type 1 errors
 * True Negatives - np.logical_and(1 - test_labels, 1 - test_preds).sum()
-* False Negatives - np.logical_and(test_labels, 1 - test_preds).sum()
+* False Negatives - np.logical_and(test_labels, 1 - test_preds).sum() - Type 2 errors
 * Recal -  tp / (tp + fn)
 * Precision - tp / (tp + fp)
 * Accuracy - (tp + tn) / (tp + fp + tn + fn)
@@ -241,16 +254,12 @@ Note: This disrtribution of answers uses a cutoff at 4.0 resulting in about 1770
 ### Algorithms and Techniques
 
 *Data Pre-Processing*: The first and non-trivial task was to preprocess the raw datasets, some of which are XML, and generate encoded train and test datasets.
-One of the goals of the encodining is to build in the ability to decode the results so that after they are randomly broken in to train and test and prediction are made, we can reverse the encoding to see if the answers correct or incorrect predicted show any patterns. 
-This decoding helps to better understand and visualize the challenges with some of the answers as compared to others. To support that, the question_id
-is added to the answer embedding vector. 
+One of the goals of the encodining of answers is to build in the ability to decode the results. After data is randomly broken in to train and test and prediction are made, we can reverse the encoding to see if errors in answers predicted show any patterns. 
+This decoding helps to better understand and visualize the challenges with some of the answers as compared to others. To support that, the question_id is added to the answer embedding vector. 
 
-To simplify working in the AWS Sagemaker enviroment, the process also generates a test.csv and train.csv suitable for use in Sagemaker. 
+To simplify working in the AWS Sagemaker enviroment, the process also generates a test.csv and train.csv suitable for use in Sagemaker.  That is, the label for correct answer (0 or 1) is prepended to the features (word vectors).
 
-While not done for this project, it would be simple to add calls to the methods the process in data set to the SageMaker Jupyter notebooks. These are found in /source/utils.py. This was not done at the time of this writing. The files are stored in GitHub and retrieved in the AWS environment as needed.
-
-*The next step is to write code to build and train the LSTM and XGBoost models.
-Seperate version for local testing and SageMaker with Jupyter for Hypertuning are required. 
+While not done for this project, it would be simple to add calls to the methods that process in data set to the SageMaker Jupyter notebooks. This was not done at the time of this writing. Instead, the files are stored in GitHub and retrieved in the AWS environment as needed.
 
 #### LSTM - Deep Learning ####
 The basic framework for the LSTM deep learning model comes from the Reordan (*3) paper. 
@@ -340,35 +349,30 @@ As described in the **Data Exploration** section, SEB data for the four question
 This includes question text, reference answer, student answers and scores. Because XML is fairly easy to process, the code was written to load the data direcly from the XML files each 
 time the model was tested. The files were also quite small, so this provided little overhead. 
 
-Several additional helper funtions that leverage *xml.dom.minidom* were written to extract the desired fields from the SEB question files (*read_xml_qanda()* and *get_xml_elements()* ).
+Helper funtions that leverage *xml.dom.minidom* were written to extract the desired fields from the SEB question file. These functions leverage DOM parsing to extract the single and multiply occuring data (student answers) by iterating through the XML DOM.
 
 **Answer Encoding**
 
 The next step is to generate a vocabulary and map the text words to a list of numbers. This step also determinew the longest sentence used later for padding all answer vectors to the same length.
 
-The enconding is done by the fuction, *generate_data()*, in */source/utils*. The *genereate_data()* function calls an number of other functions that build the vocuabulary and map the words to that vocabulary. 
-The vocabulary is generated by concatenating all the answers into a single text string, cleansing the string and creating a word dictionary with unique integer ids.
+The enconding is done by first building the vocuabulary. The vocabulary is generated by concatenating all the answers into a single text string, cleansing the string and creating a word dictionary with unique integer ids.The answers are then maped the words basd on unique integer index to the vocabulary. 
 
-The encoded answer vectors are padded based on the longest answer found in the test data.
+The encoded answer vectors are padded based on the longest answer found in the test data using a function provided by the Keras library (keras.preprocessing.sequence.pad_sequences).
 
-The data is then randomized by adding the predictor column (correct answer) to the answer vectors and using the DataFrame reindexing feature with np.random.permutations.
-
-The data is then split back into answsers and labels and passed back to load_seb_data() for train_test_split().
+The data is then randomized by adding the predictor column (correct answer) to the answer vectors and using the DataFrame reindexing feature with np.random.permutations. After randomizing the order, the data is then split back into answsers and labels read for dividing into train and test datasets.
 
 **Train and Test Data**
-The final step is to use sklearn.model_selection.train_test_split using a 30% split to generate the  X_train, y_train, X_test and y_test data.
-These along with the vocabulary and the length of the answer vector (needed for the Embedding layer) are returned for use in the modeling phase.
-This data is also stored in train.csv and test.csv with the label prepended in the first column for use in Sagemaker models.
+The final step is to use sklearn.model_selection.train_test_split using a 30% split to generate the  X_train, y_train, X_test and y_test data. These along with the vocabulary and the length of the answer vector (needed for the Embedding layer) are returned for use in the modeling phase. This data is also stored in train.csv and test.csv with the label prepended in the first column for use in Sagemaker models.
 
 
 #### SAG Preprocessing ####
 
 Because of the complexity of the SAG raw data as documented in the **Data Exploration** section above, the raw data was preprocessed once and converted to csv with a set of
-python commands that ultimately generate the question.csv and answer.csv. Once completed the creation of the train and test data is done using the same approach as with the SEB data above.
+python commands that ultimately generate the question.csv and answer.csv. Once completed the creation of the train and test data is done using the same approach as with the SEB data above.  Pandas is leveraged heavily to read and write CSV files and to manipulate data in memory. Featurs such as adding columns to an existing Dataset read from a CSV and splitting data are often leveraged.
 
 *Manual Steps*
 
-1. The needed data files are found into separate files:
+1. The needed data must be extracted from multiple files:
     * Questions: data/ShortAnswerGrading_v2.0/data/sent/questions
     * Correct Answers: data/ShortAnswerGrading_v2.0/data/sent/answers
     * Scores: data/ShortAnswerGrading_v2.0/data/scores/1.1/ave.  (one file per question)
@@ -417,8 +421,8 @@ The data used for XGBoost needs to be in the format of [labels, features...].
  
 ### Implementation
 
-The implementation for local testing is a set of short driver python scripts that all share the comon code in the */source/util.py* file. 
-Each driver script is used to configure the hyper parameters and call methods in the */source/utils.py* script to load data and execute the model training and evaluation.
+The implementation for local testing is a set of short driver python scripts that all share the comon code in the utility file. 
+Each driver script is used to configure the hyper parameters and call utility functions to load data and execute the model training and evaluation.
 
 All local LSTM models are based on SkLearn with Keras on top of Tensorflow. The Keras Sequential model is used to build the model layers.
 Local XBGoost uses XGBCLassifier which conforms to the SKLearn api.
@@ -442,13 +446,13 @@ Most of the initial testing is done locally on a laptop to debug and get initial
 *1 Ngrams are tested to provide a feature that compares the student answer to reference answer.
 
 The **local mode** code as well as the Sagemaker code passes in the tuning parameters as a dictionary. 
-For LSTM models, the local driver scripts call a common shared method from */source/utils* named *train_and_test()*. 
-This method builds the model, fits the data and then uses the test data with the model's predictor to evaluate the model accuracy. 
+For LSTM models, the local driver scripts call a common shared utility function. 
+This builds the model, fits the data and then uses the test data with the model's predictor to evaluate the model accuracy. 
 
 A similar apporach is used for XGBoost with the slight variation because the persistence of models is different between Keras and XGBoost. 
-To handle this some of the processing is moved to the driver scripts which then calls lower level methods used by *train_and_test()*.
-The XGBoost script calls *build_mode()* which returns the model and then directoy calls model.fit(). The resulting model is then saved using a *save_xgb_model()* method. 
-Finally the *evaluate()* and *display_results()* from */source/utils* are called to evaluate and print results. 
+To handle this some of the processing is moved to the driver scripts which then calls lower level utility functions evaluate the model but build the simpler XGBoost model in the driver script. The resulting model is then saved using another unility fuction for that leverages the Joblib library to save model objects.
+ 
+A common set of code is used by all tests to evaluate and display the results. The evaluation iterates through all the test data, predicts the result and calculates the metrics. The results are printed with the ability to list every answer and it's prediction or just the summary metrics. 
 
 #### Local LSTM ####
 Tunning Parameters for **local mode** testing:
@@ -467,10 +471,8 @@ Tunning Parameters for **local mode** testing:
 
 #### SageMaker Testing ####
 
-The custom file for LSTM processing on SageMaker can be found in **/source/train.py**.
-
-For LSTM, a SageMaker TensorFlow model is used which calls custom code to build and train the model. 
-The code persists the model as expected by SageMaker and also calculates the needed metrics for parsing by SageMakers Hypertuning jobs.
+For LSTM/Tensorflow SageMaker requires access to a user devleoped Python scrip that builds and trains the model. The custom file for LSTM processing on SageMaker is stored in **/source/train.py** and can be referenced in the setup of Tensorflow models in the Jupyter notebook.
+The custom code also persists the model as expected by SageMaker and calculates the needed metrics for parsing by SageMakers Hypertuning jobs.
 
 The XGBoost model is build like any standard SageMaker built in model. 
 
@@ -488,10 +490,12 @@ The last step is to launch an endpoint for the predictor and use the test data t
 
 Note: Pretrained embedding are not tested on SageMaker due to time limitations and because they did not prove helpful in local testing.
 
-*Ngrams* 
+*Containment - Ngrams* 
 
-One of the experiments mentioned was to try adding Ngrams to the features. This was tested with XGBoost. 
-The ngrams were calclated using the *calculate_containment()* method found in the */similarity.py*. 
+One of the experiments mentioned was to try adding Ngrams to the features. Containment is the degree to which one sentence matches another based on comparision of word or word sequences.
+ 
+As a quick experiment, this was tested with XGBoost. The ngrams were calclated using and SKLearn function called CountVectorizer (sklearn.feature_extraction.text CountVectorizer). Once instantiated, a CountVector object take the answer and reference answer and calculates the number of words or phrases in common basd on the input value for n.  
+
 Average containment for multiple values of n were calculated and only n1 and n2 were signifiant for the short answers. A cross correlation betwen n1, n2 and the label (correct/incorrect) were completed to see how well each correlated. 
 A test and train data set was manually created by appending these values to the existing generated train.csv and test.csv.
 
