@@ -1,9 +1,10 @@
-from source.utils import train_and_test, load_sag_data
+from source.utils import train_and_test, load_sag_data, save_results
 
 def main():
     model_dir = 'model/sag'
     model_file = '100pct'  # used to load existing model if train is false
     questions_file = 'data/sag2/questions.csv'
+    results_dir = 'data/results/sag'
     train = True
     # Pretrained embeddings
     pretrained = False
@@ -25,8 +26,10 @@ def main():
                     'dropout': 0.3}
 
     # Trains model if train=True and prints out metrics on results (see below)
-    train_and_test(model_dir, model_file, model_params, X_train, y_train, X_test, y_test,
-                   vocabulary, questions_file, train, True)
+    eval, results = train_and_test(model_dir, model_file, model_params, X_train, y_train, X_test, y_test,
+                   vocabulary, questions_file, train)
+
+    save_results(f"{results_dir}/sag_tf_train", model_params, eval, results)
 
 main()
 

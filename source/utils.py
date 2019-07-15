@@ -1,7 +1,7 @@
+import datetime
 from xml.dom import minidom
 import pandas as pd
 import numpy as np
-from nltk.stem.porter import *
 import re
 from bs4 import BeautifulSoup
 from numpy.random import seed
@@ -32,11 +32,17 @@ def get_glove():
     return glove
 
 def get_xml_elements(doc, tag):
+    ''' Helper method to extract the desired string value based on a tag from the SEB XML
+        Used by read_xml_qanda().
+    '''
     elements = doc.getElementsByTagName(tag)
     values = [e.firstChild for e in elements]
     return values, elements
 
 def read_xml_qanda(filename, id):
+    ''' SEB data specific method to extract key question and answer data
+        Used by the load_seb_data() function.
+    '''
     doc = minidom.parse(filename)
     values, elements = get_xml_elements(doc, 'questionText')
     question_text = values[0].data
@@ -146,6 +152,9 @@ def decode_answers(encoded_answers, from_encoded, pretrained=False):
     return decoded_answers
 
 def decode_predictions(X_test, y_test, vocabulary, prediction, questions_file):
+    ''' Combine the prediction results with the original answer data
+        Return: Dataframe of human readable predictions and related string data
+    '''
     questions = pd.read_csv(questions_file, dtype={'id':str})
     decoded = decode_answers(X_test, vocabulary)
     results = []
@@ -159,12 +168,13 @@ def decode_predictions(X_test, y_test, vocabulary, prediction, questions_file):
 
 
 def generate_data(answer_df, pretrained=False, sample_size=1, question_id=None):
+    ''' Convert the provided asnwers into numerically encoded data'''
 
     if question_id:
-         max_length, encoded_answers, from_encoded = encode_answers(answer_df, pretrained, question_id,
+         max_length, encoded_answers, vocabulary = encode_answers(answer_df, pretrained, question_id,
                                                                                   answer_df[question_id])
     else:
-         max_length, encoded_answers, from_encoded = encode_answers(answer_df, pretrained, question_id,
+         max_length, encoded_answers, vocabulary = encode_answers(answer_df, pretrained, question_id,
                                                                                   answer_df[question_id])
 
     encoded_answer_df = pd.DataFrame(encoded_answers)
@@ -177,14 +187,13 @@ def generate_data(answer_df, pretrained=False, sample_size=1, question_id=None):
     randomized_labels = randomized_data[predictor_col].values[:max]
     randomized_answers = randomized_data.drop([predictor_col], axis=1).values[:max]
 
-    return randomized_answers, randomized_labels, max_length, from_encoded
-
+    return randomized_answers, randomized_labels, max_length, vocabulary
 
 def load_seb_data(pretrained=False, sample_size=1, verbose=False):
-    filenames = {'em': 'data/sciEntsBank/EM-post-35.xml',
-                 'me': 'data/sciEntsBank/ME-inv1-28b.xml',
-                 'mx': 'data/sciEntsBank/MX-inv1-22a.xml',
-                 'ps': 'data/sciEntsBank/PS-inv3-51a.xml'}
+    filenames = {'em': 'data/source_data/sciEntsBank/EM-post-35.xml',
+                 'me': 'data/source_data/sciEntsBank/ME-inv1-28b.xml',
+                 'mx': 'data/source_data/sciEntsBank/MX-inv1-22a.xml',
+                 'ps': 'data/source_data/sciEntsBank/PS-inv3-51a.xml'}
 
 
     seed(72) # Python
@@ -203,7 +212,8 @@ def load_seb_data(pretrained=False, sample_size=1, verbose=False):
     answer_df.to_csv('data/seb/answers.csv', index=False)
 
     questions_df = pd.DataFrame(questions, columns=['question','answer'])
-    questions_df.to_csv('data/seb/questions.csv')
+    questions_df['id'] = questions_df.index
+    questions_df.to_csv('data/seb/questions.csv', index=False)
 
     data_answers, data_labels, max_length, vocabulary = generate_data(answer_df, pretrained, sample_size, 'id')
 
@@ -367,13 +377,13 @@ def train_and_test(model_dir, model_file, model_params, X_train, y_train, X_test
         model = load_model(filename)
         print(model.summary())
 
-    eval = evaluate(model, X_test, y_test)
+    eval, results = evaluate(model, X_test, y_test)
 
     if verbose:
-        results_df = decode_predictions(X_test, y_test, vocabulary, eval['Predictions'], questions_file)
+        results_df = decode_predictions(X_test, y_test, vocabulary, results['pred'].values, questions_file)
         print_results(results_df)
 
-    return model
+    return eval, results
 
 def evaluate(predictor, test_features, test_labels, verbose=True):
     """
@@ -391,7 +401,8 @@ def evaluate(predictor, test_features, test_labels, verbose=True):
     min_pred = min(test_preds)
     max_pred = max(test_preds)
     print(f"Min pred: {min_pred} max_pred: {max_pred}")
-    test_preds = (test_preds - min_pred)/(max_pred - min_pred)
+    if max_pred - min_pred > 0:
+        test_preds = (test_preds - min_pred)/(max_pred - min_pred)
     test_preds = np.round(test_preds)
 
     # calculate true positives, false positives, true negatives, false negatives
@@ -413,8 +424,14 @@ def evaluate(predictor, test_features, test_labels, verbose=True):
         print("{:<11} {:.3f}".format('Accuracy:', accuracy))
         print()
 
-    return {'TP': tp, 'FP': fp, 'FN': fn, 'TN': tn,
-            'Precision': precision, 'Recall': recall, 'Accuracy': accuracy, 'Predictions': test_preds}
+    features_df = pd.DataFrame(test_features)
+    results_df = pd.DataFrame(features_df[0])
+    results_df['test_y'] = test_labels
+    results_df['predictions'] = test_preds
+
+    results_df.columns = ['id','test_y', 'pred']
+
+    return {'TP': tp, 'FP': fp, 'FN': fn, 'TN': tn, 'Precision': precision, 'Recall': recall, 'Accuracy': accuracy }, results_df
 
 def print_results(results_df, show_correct=False):
 
@@ -430,3 +447,12 @@ def print_results(results_df, show_correct=False):
         print("id, question_id, prediction, correct, answer, correct_answer")
         for index, row in incorrect.iterrows():
             print(f'{row.test_id},{row.question_id},{row.prediction},{row.correct},"{row.answer}","{row.correct_answer}"')
+
+def save_results(filename, model_params, eval, results):
+    now = datetime.datetime.now()
+    results_file = open(f"{filename}_{now}.txt","w+")
+    results_file.write(str(model_params))
+    results_file.write(str(eval))
+    results_file.close()
+
+    results.to_csv(f"{filename}_pred_{now}.csv", index=False)

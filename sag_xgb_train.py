@@ -3,13 +3,13 @@ from xgboost import XGBClassifier
 
 def build_model(model_params):
     model = XGBClassifier(scale_pos_weight=1,
-                          learning_rate=0.01,
+                          learning_rate=0.184,
                           objective=model_params['objective'],
-                          subsample=0.8,
-                          min_child_weight=6,
+                          subsample=0.807,
+                          min_child_weight=3,
                           n_estimators=10000,
-                          max_depth=10,
-                          gamma=6,
+                          max_depth=12,
+                          gamma=1.173,
                           verbosity=0)
 
     return model
@@ -34,8 +34,8 @@ def main():
         model = load_xgb_model(model_file)
 
     print(model)
-    eval = evaluate(model, X_test, y_test)
-    results_df = decode_predictions(X_test, y_test, vocabulary, eval['Predictions'], questions_file)
+    eval, results = evaluate(model, X_test, y_test)
+    results_df = decode_predictions(X_test, y_test, vocabulary, results['pred'].values, questions_file)
     print_results(results_df)
 
 main()
