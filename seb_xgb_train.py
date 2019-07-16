@@ -6,11 +6,10 @@ def build_model(model_params):
                           learning_rate=0.01,
                           objective=model_params['objective'],
                           subsample=0.8,
-                          min_child_weight=2,
-                          n_estimators=10000,
-                          max_depth=10,
-                          # gamma=1,
-                          gamma=6,
+                          min_child_weight=6,
+                          n_estimators=1000,
+                          max_depth=4,
+                          gamma=1,
                           verbosity=0)
 
     return model
@@ -23,8 +22,8 @@ def main():
     X_train, y_train, X_test, y_test, max_answer_len, vocabulary = load_seb_data()
 
     # model_params = {'objective': 'binary:logistic'}
-    # model_params = {'objective': 'reg:squarederror'}
-    model_params = {'objective': 'binary:hinge'}
+    model_params = {'objective': 'reg:squarederror'}
+    # model_params = {'objective': 'binary:hinge'}
     if train:
         # Build Model
         model = build_model(model_params)
