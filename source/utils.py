@@ -7,6 +7,8 @@ from bs4 import BeautifulSoup
 from numpy.random import seed
 
 from keras.preprocessing.sequence import pad_sequences
+from sklearn.metrics import f1_score
+from sklearn.metrics import fbeta_score
 from sklearn.model_selection import train_test_split
 
 from tensorflow import set_random_seed
@@ -415,6 +417,10 @@ def evaluate(predictor, test_features, test_labels, verbose=True):
     recall = tp / (tp + fn)
     precision = tp / (tp + fp)
     accuracy = (tp + tn) / (tp + fp + tn + fn)
+    f1w = f1_score(test_labels, test_preds, average='weighted')
+    fb01 = fbeta_score(test_labels, test_preds,0.1, average='weighted')
+    fb05 = fbeta_score(test_labels, test_preds,0.5, average='weighted')
+    fb10 = fbeta_score(test_labels, test_preds,1.0, average='weighted')
 
     # print metrics
     if verbose:
@@ -422,6 +428,10 @@ def evaluate(predictor, test_features, test_labels, verbose=True):
         print("\n{:<11} {:.3f}".format('Recall:', recall))
         print("{:<11} {:.3f}".format('Precision:', precision))
         print("{:<11} {:.3f}".format('Accuracy:', accuracy))
+        print ("{:<11} {:.3f}".format('F1 weighted:', f1w))
+        print ("{:<11} {:.3f}".format('FBeta(0.1):', fb01))
+        print ("{:<11} {:.3f}".format('FBeta(0.5):', fb05))
+        print ("{:<11} {:.3f}".format('FBeta(1.0):', fb10))
         print()
 
     features_df = pd.DataFrame(test_features)
@@ -431,7 +441,7 @@ def evaluate(predictor, test_features, test_labels, verbose=True):
 
     results_df.columns = ['id','test_y', 'pred']
 
-    return {'TP': tp, 'FP': fp, 'FN': fn, 'TN': tn, 'Precision': precision, 'Recall': recall, 'Accuracy': accuracy }, results_df
+    return {'TP': tp, 'FP': fp, 'FN': fn, 'TN': tn, 'Precision': precision, 'Recall': recall, 'F1-weighted': f1w, 'FBeta(0)': fb01, 'FBeta(0.6)': fb05, 'FBeta(1.0)': fb10, 'Accuracy': accuracy }, results_df
 
 def print_results(results_df, show_correct=False):
 

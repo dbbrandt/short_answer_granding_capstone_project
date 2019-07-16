@@ -112,12 +112,29 @@ Once the two types of models are built, tuned and tested with the relatively sma
 the same models and tuning will be applied to an entirely different and larger data set, SAG, which consists of 88 computer science questions and about 2500 answers. 
 
 ### Metrics
-This is a basic binary classification problem, so the metrics are pretty straight forward. We are looking for accuracy with a secondary goal of minimizing type 1 errors without impacting accuracy. False positives are less likely to be discovered or reported by students then false negatives which if reported can improve their grade.
-Because of this bias toward Type II errors, recalland precision are relevant as they help indeify the type of error. 
-Variation with the same accuracy occured often during testing. Also predicting all correct or incorrect when models failed to converge on a solution occured when first tunninga model. 
-This might lead to a reasonable accuracy through high recall but is not an acceptable solution. 
+This is a basic binary classification problem, so the metrics are pretty straight forward. The baseline (Riordan *3) used F1 which is a measure of a test's accuracy. It considers both the precision P and the recall R of the test to compute the score.
+More specifically, they used a weighted calculatio for F1 that takes in to consideration any imbalance in the datasets. The datasets in these projects show some imbalance although nothing extreeme like a fraud detection problem. The results of F1 are not expected
+to differ drastacly from simple accuracy but are a more accurate measure.
 
-The key metrics are:
+F1 = 2 * (P * R) / (P + R)
+
+When calculating weighted F1, the F1 Scores are calculated for each label and then their average is weighted by support - which is the number of true instances for each label.
+
+For this project, We are not only interested in accuracy but also have a secondary goal of minimizing type 1 errors in our metric. 
+False positives are less likely to be discovered or reported by students then false negatives which if reported can improve their grade.
+
+Because of our bias toward Type II errors, precision should we weighted more than recal. This concept is supported by the F1 calcuation by adding a beta coeficient.
+ or F1 the beta is 1. The more generalized version, where β van be any value > 0, is:
+
+Fβ = (1 + β ) * (P * R) / (β * P + R)
+ 
+Selecting a value of β = 0.1 will bias our metric significantly in favor or precision and minimize false positives. 
+
+1. Baseline: For the purposes of comparing to the baseline we will use the F1 weighted value.
+2. Best Model: For the purposes of selecting the best model variation we will also use F1 as a primary criteria. 
+    * For a set of results in a reasonable range of F1 (i.e > 75%) we will look at Fβ to choose between results thar have similar F1 values.
+
+In addition to the F1 and Fβ, the key metrics we need to collect are:
 
 * True Positives - np.logical_and(test_labels, test_preds).sum()
 * False Positives - np.logical_and(1 - test_labels, test_preds).sum()  - Type 1 errors
