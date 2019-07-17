@@ -531,12 +531,12 @@ A test and train data set was manually created by appending these values to the 
 **SAG**
 
        hyperparameters = {
-        'epochs': 200,
+        'epochs': 20,
         'embedding_size': 50,
         'flatten': 1,   
         'lstm_dim_1': 100,
         'lstm_dim_2': 20,
-        'dropout': 0.2        
+        'dropout': 0.3
 
 
 HyperTuning Setup for Tensorflow:
@@ -562,7 +562,7 @@ The selection of parameters to hypertune was based on the experience in local te
 
 **SAG**
 
-    tf_hyperparameter_tuner = HyperparameterTuner(estimator = estimator, 
+    tf_hyperparameter_tuner = HyperparameterTuner(estimator = estimator, # The estimator object to use as the basis for the training jobs.
            objective_metric_name = 'Validation_accuracy', # The metric used to compare trained models.
            objective_type = 'Maximize', # Whether we wish to minimize or maximize the metric.
            metric_definitions = [{'Name': 'Validation_loss', 
@@ -571,14 +571,13 @@ The selection of parameters to hypertune was based on the experience in local te
                                   'Regex': 'Validation_accuracy:(.*?);'}
                                 ],
            max_jobs = 18, # The total number of models to train
-           max_parallel_jobs = 6, # The number of models to train in parallel
+           max_parallel_jobs = 3, # The number of models to train in parallel
            hyperparameter_ranges = {
-                'dropout': ContinuousParameter(0.1, 0.3),
-                'embedding_size': IntegerParameter(50, 200),
-                'lstm_dim_1': IntegerParameter(50, 200),
+                'dropout': ContinuousParameter(0.2, 0.4),
+                'embedding_size': IntegerParameter(50, 250),
+                'lstm_dim_1': IntegerParameter(100, 250),
                 'lstm_dim_2': IntegerParameter(10, 50)
            })
-
 
 #### XGBoost Parameters ####
 
@@ -651,9 +650,9 @@ The ultimate goal remains to replicate the resutls and gain insight into what ne
 
 **Outcome**
 
-1. *The Deep Learning baseline was matched*. The results show how difficult the deep learning model is to optimize with these datasets. The best results were slightly better than the baseline often with simpler solutions than the optimal ones found in baseline.
+1. *The Deep Learning baseline was slightly exceeded at 77.1%, or 2% higher than the best variation test in the baseline result of 75.1%. The results show how difficult the deep learning model is to optimize with these datasets. The best results were slightly better than the baseline often with simpler solutions than the optimal ones found in baseline.
 
-2. *XGBoost - In some cases this *matched the baseline* for the smaller SEB data. More inconsistent results were obtained for the SAG data but in local tests the results were also close. This suggests that the deep learning model is not performing that well which is evedent from the lower accuracy. The main benefit of deep learning model is the insights it gives and the flexibilty is provides to improve as new insights are obtained. 
+2. *XGBoost - The XGBoost result also slightly exceeded the baseline at 76.7%. This is not significantly different from the LSTM model which suggests that considering the extra effort of the deep learning model it is not performing that well. The main benefit of deep learning model is the insights it gives and the flexibilty is provides to improve as new insights are obtained. 
 
 3. *Similarity* - While only briefly tested, intutiion suggests that some use of the correct answer compared to the student answer would add value. Given the limitated the scope of this project, this was only lightly tested. It showed a some promiss but was not enought to warrant dedicating extensive testing. A seperate project to combine embedding features with similarity features in various way with different models would be valuable.
 
@@ -694,7 +693,7 @@ At a minimum this validated the local modeling was repeatable.
 The basic estimator was tested first based on successful local parameters and the results were consistent:
 
        hyperparameters = {
-        'epochs': 200,
+        'epochs': 20,
         'embedding_size': 30,
         'flatten': 0,   
         'lstm_dim_1': 100,
@@ -762,15 +761,15 @@ The best result is highlighted in green. The best restult is consistent with the
 
 A total of 18 Hyptertuning jobs were run with the results of the best training job ending about the same as from the local training best restults.
 The SageMaker results are consistent with the local results but show no improvement after Hypertuning.
-The result is 75.9% compared to the local 77.1% with a precision of 82.4% compared to 82.7% 
+The F1 result is 76.7% compared to the local 76.6% with a FBeta(0.1) of 76.6% compared to local 76.3%. 
 
       hyperparameters = {
-            'epochs': 200,
+            'epochs': 20,
             'embedding_size': 50,
             'flatten': 1,   
             'lstm_dim_1': 100,
             'lstm_dim_2': 20,
-            'dropout': 0.2
+            'dropout': 0.3
       }) 
 
     tf_hyperparameter_tuner = HyperparameterTuner(estimator = estimator, # The estimator object to use as the basis for the training jobs.
@@ -782,32 +781,34 @@ The result is 75.9% compared to the local 77.1% with a precision of 82.4% compar
                                   'Regex': 'Validation_accuracy:(.*?);'}
                                 ],
            max_jobs = 18, # The total number of models to train
-           max_parallel_jobs = 6, # The number of models to train in parallel
+           max_parallel_jobs = 3, # The number of models to train in parallel
            hyperparameter_ranges = {
-                'dropout': ContinuousParameter(0.1, 0.3),
-                'embedding_size': IntegerParameter(50, 200),
-                'lstm_dim_1': IntegerParameter(50, 200),
+                'dropout': ContinuousParameter(0.2, 0.4),
+                'embedding_size': IntegerParameter(50, 250),
+                'lstm_dim_1': IntegerParameter(100, 250),
                 'lstm_dim_2': IntegerParameter(10, 50)
            })
 
 
     Best Job
     
-    dropout: 0.2540023221723521 
-    embedding_size: 177 
-    epochs: 200 
+    dropout: 0.34991949487349483 
+    embedding_size: 184
+    epochs: 20 
     flatten: 1 
-    lstm_dim_1: 197 
-    lstm_dim_2: 13 
+    lstm_dim_1: 188 
+    lstm_dim_2: 16
     
     predictions  0.0  1.0
     actuals              
-    0.0          107   96
-    1.0           81  450
+    0.0           93  110
+    1.0           52  479
     
-    Recall:     0.847
-    Precision:  0.824
-    Accuracy:   0.759
+    Recall:      0.902
+    Precision:   0.813
+    Accuracy:    0.779
+    F1 weighted: 0.767
+    FBeta(0.1):  0.766
 
 **4. SAG Data with XGBoost**
 
@@ -878,14 +879,36 @@ The results showed minimal gains over the encoded answers without ng1 and ng2. W
  ![](https://github.com/dbbrandt/short_answer_granding_capstone_project/blob/master/data/results/Sag-Ngram-2-Histogram.png?raw=true) 
  
  
- 
+    estimator.set_hyperparameters(max_depth=12,
+        eta=0.01,
+        gamma=6,
+        min_child_weight=6,
+        subsample=0.9,
+        silence=1,
+        objective='binary:logistic',
+        early_stopping_rounds=5000,
+        num_round=10000)
+        
+*Before Hypertuning*    
+
+    Predictions  0.0  1.0
+    actuals              
+    0.0           46  156
+    1.0           39  492
+    
+    Recall:      0.927
+    Precision:   0.759
+    Accuracy:    0.734
+    F1 weighted: 0.693
+    FBeta(0.1):  0.698        
+                         
     XGBClassifier(base_score=0.5, booster='gbtree', colsample_bylevel=1,
-                  colsample_bynode=1, colsample_bytree=1, gamma=1,
-                  learning_rate=0.01, max_delta_step=0, max_depth=4,
-                  min_child_weight=6, missing=None, n_estimators=10000, n_jobs=1,
-                  nthread=None, objective='binary:logistic', random_state=0,
-                  reg_alpha=0, reg_lambda=1, scale_pos_weight=1, seed=None,
-                  silent=None, subsample=0.8, verbosity=0)
+          colsample_bynode=1, colsample_bytree=1, gamma=1,
+          learning_rate=0.01, max_delta_step=0, max_depth=4,
+          min_child_weight=6, missing=None, n_estimators=10000, n_jobs=1,
+          nthread=None, objective='binary:logistic', random_state=0,
+          reg_alpha=0, reg_lambda=1, scale_pos_weight=1, seed=None,
+          silent=None, subsample=0.8, verbosity=0)
     Min preds: 0.0 max_preds: 1.0
     
     predictions   0.0  1.0
