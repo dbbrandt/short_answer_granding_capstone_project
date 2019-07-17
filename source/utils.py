@@ -23,7 +23,8 @@ from source.glove import Glove
 
 answer_col = 'answer'
 predictor_col = 'correct'
-sag_question_id_file = 'data/sag2/files'
+sag_data_dir = 'data/sag'
+sag_question_id_file = f"{sag_data_dir}/files"
 
 glove = Glove()
 
@@ -263,8 +264,8 @@ def str_id_map(filename):
     return id_to_num
 
 def load_sag_data(pretrained=False, percent_of_data=1, verbose=False):
-    filename = 'data/sag2/answers.csv'
-    # filename = 'data/sag2/balanced_answers.csv'
+    filename =  f"{sag_data_dir}/answers.csv"
+    # filename =  f"{sag_data_dir}/balanced_answers.csv"
 
     seed(72) # Python
     set_random_seed(72) # Tensorflow
@@ -286,7 +287,7 @@ def load_sag_data(pretrained=False, percent_of_data=1, verbose=False):
     print(f"Longest answer: {max_length}")
 
     # Save Vocabulary
-    pd.DataFrame(vocabulary.values()).to_csv('data/sag2/vocab.csv', index=False, header=None)
+    pd.DataFrame(vocabulary.values()).to_csv( f"{sag_data_dir}/vocab.csv", index=False, header=None)
 
     X_train, X_test, y_train, y_test = train_test_split(data_answers, data_labels, test_size=0.30, random_state=72)
 
@@ -294,7 +295,7 @@ def load_sag_data(pretrained=False, percent_of_data=1, verbose=False):
     labels_df = pd.DataFrame(y_train)
     answers_df = pd.DataFrame(X_train)
     test_data = pd.concat([labels_df, answers_df], axis=1)
-    test_data.to_csv('data/sag2/train.csv', index=False, header=None)
+    test_data.to_csv( f"{sag_data_dir}/train.csv", index=False, header=None)
     train_x = test_data.iloc[:, 1:]
     max_length = train_x.values.shape[1]
     print(f"Test Data columns: {max_length}")
@@ -303,7 +304,7 @@ def load_sag_data(pretrained=False, percent_of_data=1, verbose=False):
     labels_df = pd.DataFrame(y_test)
     answers_df = pd.DataFrame(X_test)
     test_data = pd.concat([labels_df, answers_df], axis=1)
-    test_data.to_csv('data/sag2/test.csv', index=False, header=None)
+    test_data.to_csv( f"{sag_data_dir}/test.csv", index=False, header=None)
 
     if verbose:
         raw_answers = decode_answers(test_data.values, vocabulary)

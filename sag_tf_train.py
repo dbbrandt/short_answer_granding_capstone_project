@@ -3,7 +3,7 @@ from source.utils import train_and_test, load_sag_data, save_results
 def main():
     model_dir = 'model/sag'
     model_file = '100pct'  # used to load existing model if train is false
-    questions_file = 'data/sag2/questions.csv'
+    questions_file = 'data/sag/questions.csv'
     results_dir = 'data/results/sag'
     train = True
     # Pretrained embeddings

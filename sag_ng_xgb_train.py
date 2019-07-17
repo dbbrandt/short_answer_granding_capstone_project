@@ -16,7 +16,7 @@ def build_model(model_params):
 
 def main():
     model_file = 'model/sag/xgboost/ng_baseline'
-    questions_file = 'data/sag2/questions.csv'
+    questions_file = 'data/sag/questions.csv'
     train = True
 
     X_train, y_train, X_test, y_test, max_answer_len, vocabulary = load_sag_data()
