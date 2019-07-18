@@ -3,6 +3,46 @@
 Daniel Brandt
 July, 10 2019
 
+- [Machine Learning Engineer Nanodegree](#machine-learning-engineer-nanodegree)
+  * [I. Definition](#i-definition)
+    + [Project Overview](#project-overview)
+      - [Background](#background)
+      - [Overview](#overview)
+      - [References](#references)
+    + [Problem Statement](#problem-statement)
+      - [Goal](#goal)
+      - [Approach](#approach)
+    + [Metrics](#metrics)
+  * [II. Analysis](#ii-analysis)
+    + [Data Exploration](#data-exploration)
+    + [Exploratory Visualization](#exploratory-visualization)
+    + [Algorithms and Techniques](#algorithms-and-techniques)
+      - [LSTM - Deep Learning](#lstm---deep-learning)
+      - [XGBoost](#xgboost)
+    + [Benchmark](#benchmark)
+  * [III. Methodology](#iii-methodology)
+    + [Data Preprocessing](#data-preprocessing)
+      - [SEB Preprocessing](#seb-preprocessing)
+      - [SAG Preprocessing](#sag-preprocessing)
+      - [XGBoost Data](#xgboost-data)
+    + [Implementation](#implementation)
+      - [Local Testing](#local-testing)
+      - [Local LSTM](#local-lstm)
+      - [SageMaker Testing](#sagemaker-testing)
+      - [XGBoost Parameters](#xgboost-parameters)
+    + [Refinement](#refinement)
+  * [IV. Results](#iv-results)
+    + [Model Evaluation and Validation](#model-evaluation-and-validation)
+    + [Justification](#justification)
+  * [V. Conclusion](#v-conclusion)
+    + [Free-Form Visualization](#free-form-visualization)
+    + [Reflection](#reflection)
+    + [Improvement](#improvement)
+
+<small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
+
+___
+
 ## I. Definition
 
 ### Project Overview
@@ -332,6 +372,7 @@ The highlighed section in yellow is the first of two datasets tested in this pro
 
 ![](https://github.com/dbbrandt/short_answer_granding_capstone_project/blob/master/data/results/Benchmark-SEB-2Way-Riordan.png?raw=true)
 
+___
 
 ## III. Methodology
 
@@ -637,6 +678,7 @@ These include, flattening, pretrained embeddings, multiple LSTM layers.
 
 3. Tranlate the local XBboost model into a SageMaker XGBoost model and build, train, Hypertune and evaluate the results.
 
+___
 
 ## IV. Results
 
@@ -948,6 +990,7 @@ LSTM Model:
 4. Dropout Layer at 0.3 to reduce overfiting.
 5. Activation Layer using Linear.
 
+___
 
 ## V. Conclusion
 
