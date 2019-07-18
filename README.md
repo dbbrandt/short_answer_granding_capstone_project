@@ -1,7 +1,7 @@
 # Short Aswer Grading - Capstone Project
 Capstone project for Udacity's Machine Learning for Engineers
 
-[Final Report](https://github.com/dbbrandt/short_answer_granding_capstone_project/blob/master/capstone_resport.md)
+[Final Report](https://github.com/dbbrandt/short_answer_granding_capstone_project/blob/master/capstone_report.md)
 
 The purpose of this project is to validate approaches to grading short answer tests using machine learning models. 
 The problem is to determine if a student answer is correct or incorrect based on a model that performs a binary classification or linear regresssion approach. In either case, the output of the model prediction is a probability that an answer is correct or incorrect on a scale of 0 to 1.
