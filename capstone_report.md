@@ -16,7 +16,7 @@ Given a very broad set of possible subjects, any given question can be phrased i
 For short answer tests, a given question can be answered correctly in innumerable ways as well. Like with voice assistants, the quality of the response in terms of grammar, spelling, typos and word choice are extremely variable.
 What makes the short answer grading possibly more challenging than large scale intelligent assistants is that each individual test might have very limited responses and may not be in use for that long. 
 
-Because short answer tests are very tedious to grade, the success in automating related areas such as identifying plagiarism and essay grading has led to renewed efforts to attach this area. The problem is challenging because of the need to focus on identifying correctness in relatively short answers. Longer answers and essays require a broader set of criteria like grammar, ideas, structure and therefore provide more features for machine learning to work with.
+Because short answer tests are very tedious to grade, the success in automating related areas such as identifying plagiarism and essay grading has led to renewed efforts to attack this area. The problem is challenging because of the need to focus on identifying correctness in relatively short answers. Longer answers and essays require a broader set of criteria like grammar, ideas, structure and therefore provide more features for machine learning to work with.
 
 If we had enough short answer test results graded by a human for a particular test, it would be relatively easy to model and grade a short answer test. Unfortunately, exhaustive student answer datasets rarely exist in the real world for a specific short answer test. The reality is that tests generally have to be refreshed regularly to reflect constantly changing content and, in some cases, to prevent unwanted distribution and cheating. 
 
@@ -42,22 +42,22 @@ The goal of this project is to test that approach on some datasets with baseline
 A complete solution is not the only valuable outcome. Machine learning can still add a lot of value today. While complete grading may not be possible, automation of some of the answers allowing the grader to focus on a smaller subset could also be a win. 
 This exercise may also help design short answer tests to make them easer to automatically grade. For example, a recent paper recommended that it be used to supplement the quality, provide automation in some areas of grading and help target areas where more human involvement is needed. *1
 
-This project originated from my interest in both memomry and how memory impacts learning. We employ two types of memory while learning: recognition and recall. 
+This project originated from my interest in both memory and how memory impacts learning. We employ two types of memory while learning: recognition and recall. 
 A multiple-choice test involves a larger percentage of recognition since the correct answer is usually provided and can be recognized. Short answer questions on the other hand require a more intense form of memory where, given no recognition prompt, an answer must be recalled.
-Another benefit of short answer over multiple choice questions is that they are often easer to write. They are easier to write because for multiple choice exames random, but possibly related answers must be generated which can be very time consuming. 
+Another benefit of short answer over multiple choice questions is that they are often easer to write. They are easier to write because an educator must generate multiple answers for a multiple-choice exam some of which must be tricky to distinguish from the correct answer. 
 
 #### Overview ####
 
 The purpose of this project is to validate approaches to grading short answer tests using machine learning models. 
 The problem is to determine if a student answer is correct or incorrect based on a model that performs a binary classification or linear regresssion approach. In either case, the output of the model prediction is a probability that an answer is correct or incorrect on a scale of 0 to 1.
 
-The first step in the project is to replicate results of a deep learning LSTM approach (Long Short Term Memory) with embedding from a recent state of the art research paper by Riordan reference below (*3). Each student answer is represented as a vector of numbers, where an integer is uniquely mapped to a word based on a vocabulary of all words in the dataset of answers. Embedding referes to a step where the word vectors are used by the model to create a set output where related words are represented by vectors closer together than unrelated words. This allows the model to handle simiilar words being used to represent the same correct answer. The model can do the embedding at the time its run or pretrained embeddings can be used which can be downloaded from other sources. Pretrained embeddings represent the relationship of words based on a large set of training data that might not be available with a particular problem.
+The first step in the project is to replicate results of a deep learning LSTM approach (Long Short Term Memory) with embedding from a recent state of the art research paper by Riordan referenced below (*3). Each student answer is represented as a vector of numbers, where an integer is uniquely mapped to a word based on a vocabulary of all words in the dataset of answers. Embedding referes to a step where the word vectors are used by the model to create a set of output vectors, one per word, where related words are represented by vectors closer together than unrelated words. This allows the model to handle simiilar words being used to represent the same correct answer. The model can do the embedding at the time its run or pretrained embeddings can be used which can be downloaded from other sources. Pretrained embeddings represent the relationship of words based on a large set of training data that might not be available with a particular problem.
 The output of the model is the probability between 0 and 1 that the answer is correct.
 
-The results of state of the art machine learning currently show moderate but limited success automating short answer grading.
+The results of state of the art machine learning approaches currently show moderate but limited success automating short answer grading.
 Most reaults are in the range of 70-75% accuracy. Something close to 95-100% accuracy is needed. To the extent it cannot be achieved,
 the prediction must error toward precision, which means avoiding false positive (grading incorrect answer as correct) or Type 1 errors in favor of Type 2 errors . Answers with a false negative, correct answers marked incorrect,
-are easier for a manual grader to review and credit the students test score. Answers graded correct that are incorrect will not likely be reported by students.
+are easier for a manual grader to review and then to credit the students test score. Answers graded correct that are incorrect will not likely be reported by students.
 
 To cover a variety of short answer data challenges, two different dataset were chosen from different research papers:
 
@@ -65,17 +65,17 @@ To cover a variety of short answer data challenges, two different dataset were c
 
 2. Short Answer Grading (SAG): These assignments exams were assigned to an introductory computer science class at the University of North Texas and collected via an online learning environment. *1 (Suzen)
 
-This project leverages both local process and the Sagemaker enviornment in order to uses Hypertuning. Hypertuning leverage the power of cloud computer to run a large number of concurrent models at once and find the optimal set of model configurations (tunning parameters) that result in the best predictions. 
+This project leverages both local computer testing as well as leveraging the AWS Sagemaker enviornment in order to uses Hypertuning. Hypertuning leverage the power of cloud computing to run a large number of concurrent models at once and find the optimal set of model configurations (tunning parameters) that result in the best predictions. 
 
 This project also compares the state-of-the-art deep learning model, LSTM, to a much simpler but powerful machine learning model, XGBoost. 
 
-The results will show that either approach will not come near to the desired accuracy. That is to say neither apporach is currrently adequate to automate short answer grading. However, deep learning model can be used to partially automate short answer grading and a major goal of this project is to better understand the limitations and strenghts of the deep learning approach.
+The results will show that neither approach comes near to the desired accuracy. That is to say, neither apporach is currrently adequate to automate short answer grading. However, a deep learning model can be used to partially automate short answer grading and this addresses one major goal of this project which is to better understand the limitations and strenghts of the deep learning approach.
 
 The results also show that future testing should focus on identifying the kinds of questions and answers that perform better by analyzing the results on a question basis.
 
 Pretrained data was not of much use in this project due to user input errors. Future tests should be done with more predecitable short answer questions without typos and spelling issues. This could be accomplished by adding upfront algorithms to correct spelling and typos. Such preprocessing would make the pretrained embedding more useful. 
 
-Finally, it is possible that the results could be used to identify questions that can be autograded while flaging questions or specific answers for human grading if they fall in a range of probabilities that are not as conclusive.
+Finally, it is possible that the machine learning could be used to identify questions that can be autograded while flaging questions or specific answers for human grading if they fall in a range of probabilities that are not as conclusive.
 
 
 #### References ####
@@ -859,7 +859,7 @@ since the tests were run in an identical manor to the SEB data. This will requir
 For this test ng1 and ng2 were determined to be the most useful. These two ngrams were found to correlation to correct vs. incorrect answers at about 20%. This suggests that for a given a student answer, about 30% of the correct/incorrect grade is predicted by the ng1 or ng2. 
 The two ngrams have a 72% correlation to each other.  
 
-The results showed minimal gains over the encoded answers without ng1 and ng2. While not bad, **77.9%** , this was not sufficently better to warrant extensive testing of this approach at this time. I does support future testing that factors in the reference answer compared to the student answer. It is possible that a different modeling approach will be needed to reap the advantages of these features.
+The results showed no gains over the encoded answers without ng1 and ng2. The result F1, **69.3%** , lower than XBGoost without ngrams so further testing was not waranted with this apporach at this time. More testing and that better factors in the reference answer compared to the student answer is needed. It is possible that a different modeling approach will be needed to reap the advantages of these similarity features combined with word vectors.
  
     Correlation between Ngrams and Correct. (20 - 30%)
     Only 72%  correlated together.
@@ -902,32 +902,42 @@ The results showed minimal gains over the encoded answers without ng1 and ng2. W
     F1 weighted: 0.693
     FBeta(0.1):  0.698        
                          
-    XGBClassifier(base_score=0.5, booster='gbtree', colsample_bylevel=1,
-          colsample_bynode=1, colsample_bytree=1, gamma=1,
-          learning_rate=0.01, max_delta_step=0, max_depth=4,
-          min_child_weight=6, missing=None, n_estimators=10000, n_jobs=1,
-          nthread=None, objective='binary:logistic', random_state=0,
-          reg_alpha=0, reg_lambda=1, scale_pos_weight=1, seed=None,
-          silent=None, subsample=0.8, verbosity=0)
-    Min preds: 0.0 max_preds: 1.0
-    
-    predictions   0.0  1.0
-    actuals
-    0.0           72  130
-    1.0           32  499
+                         
+*Hypertuning*
 
-    Recall:     0.940
-    Precision:  0.793
-    Accuracy:   0.779
+We see that Hypertuning improved on accuracy but since it's not optimizing on F1 the F1 result is slightly lower. 
+The FBeta(0.1) is higher so in some sense they are not that different.  
+
+    {'_tuning_objective_metric': 'validation:rmse', 
+    'early_stopping_rounds': '5000', 
+    'eta': '0.01', 
+    'gamma': '1.2276608440869838', 
+    'max_depth': '15', 
+    'min_child_weight': '2', 
+    'num_round': '10000', 
+    'objective': 'binary:logistic', 
+    'silence': '1', 
+    'subsample': '0.8294398452847527'}                         
+    
+    Predictions  0.0  1.0
+    actuals              
+    0.0           38  164
+    1.0           26  505
+    
+    Recall:      0.951
+    Precision:   0.755
+    Accuracy:    0.741
+    F1 weighted: 0.688
+    FBeta(0.1):  0.708
 
 ### Justification
 
 The resuls have been extensively covered and explained in previous sections. 
-The LSTM model works as expected and an XGBoost model performs almost as well suggesting that the deep learning model stil has a way to go to solve this type of problem.
-There are sufficient areas for additional testing and study as a result of this analysis but none point to a fully automated solution. 
+The LSTM model works as expected and an XGBoost model performs almost as well suggesting that the deep learning model still has a way to go to solve this type of problem.
+There are multiple areas for additional testing and study as a result of this analysis but none point to a fully automated solution. 
 The next steps would be to find a solution that automates the grading of questions that are more predictable with additonal preprocessing to prepare and clean the data and predict which questions can be auto graded.
 
-The final results sugges the following model best fits this problem and could be used with questions that are suitable for automated grading:
+The final results suggest the following model best fits this problem and could be used with questions that are suitable for automated grading:
 
 Convert the answers to word vectors of unique numbers based on a generated vocabulary.
 
@@ -945,19 +955,15 @@ LSTM Model:
 
 One of the concerns with modeling this data is the distirbution of correct vs. incorrect student responses. The correct vs. incorrect can also be though of as the relative difficlty of the questiosns and the tests in general for it's students.
 The higher the ratio of incorrect to correct, the more difficult the test is compared to a test with a higher correct percentage. 
-It was observed that avererage test ratios of 2/3 correct to incorrect (or vice versa) did not make a difference from randomly balanced data.
-The SEB dataset had the reverse percentages to the SAG dataset but the results for accuracy were about the same. 
+It was observed that avererage test ratios of 2/3 correct to incorrect (or vice versa) performed better than a randomly balanced data set based on selecting equal numbers. This is likely becuase of the small dataset to start with. Every datapoint is critical. The SEB dataset had the reverse percentages to the SAG dataset but the results for accuracy were about the same. 
  
-The lack of balance may be important since the best model results are not that much beter than simply defaulting to the more frequent answer on these datasets. 
-We creating a randomly drawn set of answers that balanced the set without regard to the underlying questions, the results were much worse. This suggests something more is going on.
-
 Since the SAG dataset has a very large number of questions with a decent count of results for each question, some analysis at the question level is possible. 
-When this was done it becomes evident that the difficulty of questions varied greatly. Looking at the quality of predictions both from an accuracy and precision point of view shows a strong correlation between the difficulty of the question and the accuracy of the prediction.
+When this was done it becomes evident that the difficulty of questions varied greatly. Looking at the quality of predictions both from an accuracy and precision point of view shows a strong correlation between the difficulty of the question and the accuracy of the prediction. The easier the question the better the prediction. 
 This could be interpreted as harder questions results in more random or inchorent answers which are harder to predict. This also impacts the quantity of correct results. 
 When there are very few examples of correct answers on difficult questions it is not surprising that predictability for these would suffer.
 
 The conclusion is that tests with very imbalanced difficulty of questions are a likely be a problem for deep learning models. 
-This should be further explored to see there is a way to adjust for the question level imbalance but still model the entire test. Alternatively, this could be a means of eliminating questions from autograding when there are insuficient correct answers. 
+This should be further explored to see if there is a way to adjust for the question level imbalance but still model the entire test. Alternatively, we could use this information asa means of eliminating questions from autograding when there are insuficient correct answers. 
 
 **Percentage of correct v.s. incorrect by Question**
 
@@ -968,46 +974,44 @@ The chart orders the question from lest percentage correct to most. This builds 
 
 ### Reflection
 
-A solution to short answer granding using machine learning still remains to be discovered. This project replicated the results and the finding of the latest research and identified paths (see Improvements below) to move towards a usable solution to augment or replace human graders.
+A solution to short answer granding using machine learning still remains to be discovered. This project replicated the results and the findings of the latest research and also identified paths (see Improvements below) to move towards a usable solution to augment human graders.
 
 The steps taken in the project were:
 
-1. Take the identified data sets and transform the answers into bag of words embedding vectors.
+1. Take the identified data sets and transform the answers into bag of words used to generate embedding vectors.
 2. Build a custom LSTM model with additional layers based on the latest approaches from the literature. 
 3. Replicate the baseline results through adjustments to the model layers and hypertuning:
     * Embedding: size, calculated or pretrained. Pretrained was not helpful given the percent vocabulary misses in the Glove dataset.
     * Flattening/Shaping: include or exclude these layers. The results suggested that flattening is helpful for large datasets.
-    * LSTM Layers: At least two layers is required for complex datasets.
+    * LSTM Layers: At least two layers are required for complex datasets.
     * The adam optimizer was used throughout these tests. Some others were tried but no obvious improvements were found. 
-    * Objective: Literature suggested that linear optimizate outperformed binary. This was proven to be the case for this type of model. 
-        * It apperas to help converge on an answer better than softmax. 
+    * Objective: Literature suggested that linear optimizate outperformed binary. This was proven to be the case for the LSTM type of model. For XGBoost binary:logistic was superior. 
+        * Linear apperas to help converge on an solution much better than softmax. 
         * One possible explaination is that linear activation results in a wider range of probabilities providing more inforamation to the training.
 4. Hypertune the models in SageMaker. 
     * This validated the test done with local models using a completely different codebase and processing platform. 
-    * Hypertuning was not able to achieve better results. Since a good is not available this is not that surprising.
+    * Hypertuning was not able to achieve better results. This is not surpising given the difficulty of this problem.
 5. Compare the LSTM model to XGBoost.
     * Find out if deep learning models outperform a powerful machine learning algorithm.
-    * XGBoost does a pretty good job matching in most cases the deep learning model.
-    * The deep learning model helps to expose and understand the nature and solution to a learning problem rather than brute force. 
+    * XGBoost does a pretty good job nearly matching in most cases the deep learning model.
+    * The deep learning model helps to expose and understand the nature and solution which adds value over more brute force machine learning approach. 
     * The deep learning apporach leaves us with many avenues to better understand and improve on the soltuion in the future.
     
 Finally, the solution to this problem remain elusive but it is a very interesting problem and is very similar in some way to understanding human speach. 
-If an AI assistant could respond to any question with a useful answer, it would understand the complex way we express ideas.
+If an AI assistant could respond to any question with a useful answer, it would understand the complex and often sloppy way we express ideas.
 This is the same problem with short answer grading. Humans answer with all kinds of mistakes and variations that even other human grader are challenged to handle.               
-      
-
+    
 ### Improvement
 
-Throughtout the testing the goal was to look for improvements on the baseline which is not an adequate solution to short answer grading using machine learning. 
+Throughtout the testing the goal was to look for improvements on the baseline which itself is not an adequate solution to short answer grading using machine learning. 
 Before knowing which direction to persue for future testing, it is necessary to fully understand the prior work and get a sense of how deep learning and machine learning solutions perform on short answer grading.
 
-After testing a variety of approaches, several areas are possible paths to some improvement. 
+After testing a variety of approaches, several areas or possible paths should be explored. 
 
-1) Adust for the variying difficulty of questions. Balance the correct and incorrect ratios at the question level rather the dataset level. 
-This may not be feasible for some questions where there are very low counts of one outcome. 
-It may suggest that some questions given the dataset should be discarded and left for manual grading while those with sufficient data to balance difficulty could be modeled for machine learning.
+1) Adust for the variying difficulty of questions. Balance the correct and incorrect ratios at the question level rather the dataset level where there is sufficient data. 
+This suggests that some questions in a given dataset should be discarded and left for manual grading while those with sufficient data to balance difficulty could be modeled for machine learning.
 
-2) Similarity: Leverage the knowlege of the reference answer. This may add value for some questions depending on how consistent the answer are. Where the answer can be expressed in may different ways, it might be necessary to provide multiple reference answers and pick the one whith the high similarity scores.
+2) Similarity: Leverage the knowlege of the reference answer. This may add value for some questions depending on how consistent the answer are. Where the answers can be expressed in may different ways, it might be necessary to provide multiple reference answers and pick the one whith the highest similarity scores compared to a given student answer.
 
-3) Leverage Pretrained Embedding: In order for this to be effective, fixing typos and spelling errors and finding a way to add jargon specific to the test is required so words are not omitted from the features. Correcting data quality will never be perfect but is a problem that could be solved with algorithms and another machine learning preprocessing model.  
+3) Leverage Pretrained Embedding: In order for this to be effective, fixing typos and spelling errors and finding a way to add jargon specific to the test is required so words are not omitted from the embedding vectors. Correcting data quality will never be perfect but is a problem that could be solved with algorithms and another machine learning preprocessing model.  
 
