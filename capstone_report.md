@@ -898,7 +898,7 @@ since the tests were run in an identical manor to the SEB data. This will requir
 
 **5.** **Ngrams:** SAG Data with XGBoost and added Ngram features. 
 
-For this test ng1 and ng2 were determined to be the most useful. These two ngrams were found to correlation to correct vs. incorrect answers at about 20%. This suggests that for a given a student answer, about 30% of the correct/incorrect grade is predicted by the ng1 or ng2. 
+For this test ng1 and ng2 were determined to be the most useful. These two ngrams were found to correlation to correct vs. incorrect answers at about 30%. This suggests that for a given a student answer, about 30% of the correct/incorrect grade is predicted by the ng1 or ng2. 
 The two ngrams have a 72% correlation to each other.  
 
 The results showed no gains over the encoded answers without ng1 and ng2. The result F1, **69.3%** , lower than XBGoost without ngrams so further testing was not warranted with this approach at this time. More testing and that better factors in the reference answer compared to the student answer is needed. It is possible that a different modeling approach will be needed to reap the advantages of these similarity features combined with word vectors.

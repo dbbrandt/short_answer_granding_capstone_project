@@ -28,4 +28,4 @@
 /data/*_dl.csv
 
 # Jupyter Checkpoint Files
-*.ipynb
+/.ipynb_checkpoints/*

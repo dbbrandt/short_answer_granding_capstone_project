@@ -1,0 +1,5 @@
+/model/* linguist-generated=true
+
+/data/* linguist-language=text
+*.ipynb linguist-language=python
+/references/* linguist-language=text
