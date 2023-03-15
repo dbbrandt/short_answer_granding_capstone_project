@@ -1,4 +1,4 @@
-# Short Aswer Grading - Capstone Project
+# Short Answer Grading - Capstone Project
 Capstone project for Udacity's Machine Learning for Engineers
 
 [Final Report](https://github.com/dbbrandt/short_answer_granding_capstone_project/blob/master/capstone_report.md)
